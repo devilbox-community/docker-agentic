@@ -104,6 +104,9 @@ def render_tool_installs() -> str:
             commands.append(pre)
         if tool_type == "npm":
             commands.append(f"npm install -g {package}{('@' + version) if version else ''}")
+            if tool_dir.name == "continue":
+                commands.append("ln -sf /opt/nvm/current/bin/cn /usr/local/bin/continue")
+                commands.append("printf '%s\\n' 'enable -n continue 2>/dev/null || true' > /etc/profile.d/continue-cli.sh")
         elif tool_type == "pip":
             commands.append(f"pipx install {package}{('==' + version) if version else ''}")
         elif tool_type == "curl":
@@ -128,7 +131,9 @@ def render(path: Path, release: str, comment: str) -> str:
     data = data.replace("{{ edit_comment_work }}", comment)
     data = data.replace("{{ ubuntu_version }}", "24.04")
     data = data.replace("{{ go_version }}", "1.23.4")
-    data = data.replace("{{ node_major }}", "22")
+    data = data.replace("{{ nvm_version | default('v0.40.4') }}", "v0.40.4")
+    data = data.replace("{{ node_version | default('lts/*') }}", "lts/*")
+    data = data.replace("{{ bun_version | default('latest') }}", "latest")
     data = data.replace("{{ rustup_profile }}", "minimal")
     data = data.replace("{{ docker_user }}", "devilboxcommunity")
     data = data.replace("{{ image_name }}", "agentic")

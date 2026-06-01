@@ -13,7 +13,7 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PATH=/root/.local/bin:/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
+    PATH=/opt/nvm/current/bin:/root/.local/bin:/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -35,15 +35,8 @@ RUN set -eux \
         sudo \
         tini \
         tzdata \
+        unzip \
         xz-utils \
-    && install -d -m 0755 /etc/apt/keyrings \
-    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-        | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" \
-        > /etc/apt/sources.list.d/nodesource.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests nodejs \
-    && corepack enable \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux \
@@ -65,6 +58,39 @@ RUN set -eux \
     && chmod 0440 "/etc/sudoers.d/${MY_USER}" \
     && mkdir -p /shared/httpd /startup.1.d /startup.2.d \
     && chown -R "${MY_USER}:${MY_GROUP}" /shared /home/${MY_USER}
+
+# Install nvm + Node LTS (replaces nodesource apt nodejs)
+ENV NVM_DIR=/opt/nvm
+ENV NVM_VERSION=v0.40.4
+ENV NODE_VERSION=lts/*
+
+RUN set -eux \
+    && install -d -m 0755 /opt/nvm \
+    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
+       | NVM_DIR=/opt/nvm PROFILE=/dev/null bash \
+    && chown -R devilbox:devilbox /opt/nvm \
+    && su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm install "'"${NODE_VERSION}"'" && nvm alias default "'"${NODE_VERSION}"'"' devilbox \
+    && NODE_DIR="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
+    && ln -sfn "$(dirname ${NODE_DIR})" /opt/nvm/current \
+    && for bin in node npm npx corepack; do \
+         [ -f "${NODE_DIR}/${bin}" ] && ln -sf "${NODE_DIR}/${bin}" "/usr/local/bin/${bin}"; \
+       done \
+    && /usr/local/bin/corepack enable \
+    && node --version && npm --version
+
+RUN set -eux \
+    && NODE_BIN="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
+    && echo "export PATH=\"${NODE_BIN}:\$PATH\"" > /etc/profile.d/nvm-path.sh \
+    && echo "PATH=\"${NODE_BIN}:${PATH}\"" >> /etc/environment
+
+# Install bun
+ENV BUN_VERSION=latest
+RUN set -eux \
+    && curl -fsSL https://bun.sh/install | bash \
+    && install -m 0755 /root/.bun/bin/bun /usr/local/bin/bun \
+    && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
+    && rm -rf /root/.bun \
+    && bun --version
 
 RUN set -eux \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
@@ -113,6 +139,8 @@ RUN set -eux; \
 # -------------------- continue --------------------
 RUN set -eux; \
     npm install -g @continuedev/cli; \
+    ln -sf /opt/nvm/current/bin/cn /usr/local/bin/continue; \
+    printf '%s\n' 'enable -n continue 2>/dev/null || true' > /etc/profile.d/continue-cli.sh; \
     true
 # -------------------- crush --------------------
 RUN set -eux; \

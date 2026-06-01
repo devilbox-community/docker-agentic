@@ -8,6 +8,8 @@
 - 15 bundled AI coding CLI tools:
   - aider, claude-code, cline, codewhale, codex, continue, crush, cursor, gh-copilot, goose, hermes, llm, opencode, qwen-code, reasonix.
 - Ansible-generated Dockerfiles for base and work images.
+- Replaced Nodesource apt nodejs with nvm v0.40.4 + Node LTS managed at /opt/nvm.
+- Added bun runtime at /usr/local/bin/bun.
 - Devilbox integration:
   - Compose override for opt-in `agentic` service.
   - Persistent host-to-container directory mapping under `cfg/agentic-*`.
