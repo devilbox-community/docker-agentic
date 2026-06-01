@@ -1,0 +1,7 @@
+.DS_Store
+Makefile.docker
+Makefile.lint
+__pycache__/
+*.pyc
+.mypy_cache/
+!.gitkeep
