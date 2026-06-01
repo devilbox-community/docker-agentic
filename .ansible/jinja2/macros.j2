@@ -1,0 +1,31 @@
+{##################################################################################################
+# HELPER MACROS
+##################################################################################################}
+
+{%- macro get_val_by_type(name, items, key, type, default='') -%}
+    {%- set result = default -%}
+    {%- if 'all' in items[name] and items[name]['all']['type'] == type -%}
+        {%- if key in items[name]['all'] and items[name]['all'][key] -%}
+            {%- set result = items[name]['all'][key] -%}
+        {%- endif -%}
+    {%- endif -%}
+    {{- result -}}
+{%- endmacro -%}
+
+{%- macro get_val(name, items, key, default='') -%}
+    {%- if 'all' in items[name] and key in items[name]['all'] and items[name]['all'][key] -%}
+        {{- items[name]['all'][key] -}}
+    {%- else -%}
+        {{- default -}}
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- macro get_list(name, items, key) -%}
+    {%- set list = [] -%}
+    {%- if 'all' in items[name] and key in items[name]['all'] -%}
+        {%- for val in items[name]['all'][key] -%}
+            {{- list.append(val) -}}
+        {%- endfor -%}
+    {%- endif -%}
+    {{- list | to_json -}}
+{%- endmacro -%}
