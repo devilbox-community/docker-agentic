@@ -1,0 +1,54 @@
+{##################################################################################################
+# IMPORTS
+##################################################################################################}
+{% import './jinja2/macros.j2' as fn %}
+
+{%- macro get_type(name, items) -%}
+    {{- fn.get_val(name, items, 'type', '<WRONG TYPE>') -}}
+{%- endmacro -%}
+
+{%- macro get_pre(name, items) -%}
+    {{- fn.get_val(name, items, 'pre', '') -}}
+{%- endmacro -%}
+
+{%- macro get_post(name, items) -%}
+    {{- fn.get_val(name, items, 'post', '') -}}
+{%- endmacro -%}
+
+{%- macro get_build_dep(name, items) -%}
+    {{- fn.get_list(name, items, 'build_dep') -}}
+{%- endmacro -%}
+
+{%- macro get_run_dep(name, items) -%}
+    {{- fn.get_list(name, items, 'run_dep') -}}
+{%- endmacro -%}
+
+{%- macro tool_apt_get_package(name, items) -%}
+    {{- fn.get_val_by_type(name, items, 'package', 'apt', name) -}}
+{%- endmacro -%}
+
+{%- macro tool_npm_get_package(name, items) -%}
+    {{- fn.get_val_by_type(name, items, 'package', 'npm', name) -}}
+{%- endmacro -%}
+
+{%- macro tool_npm_get_version(name, items) -%}
+    {%- set version = fn.get_val_by_type(name, items, 'version', 'npm', '') -%}
+    {%- if version | length -%}{{- '@' ~ version -}}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro tool_pip_get_package(name, items) -%}
+    {{- fn.get_val_by_type(name, items, 'package', 'pip', name) -}}
+{%- endmacro -%}
+
+{%- macro tool_pip_get_version(name, items) -%}
+    {%- set version = fn.get_val_by_type(name, items, 'version', 'pip', '') -%}
+    {%- if version | length -%}{{- '==' ~ version -}}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro tool_curl_get_command(name, items) -%}
+    {{- fn.get_val_by_type(name, items, 'command', 'curl', '') -}}
+{%- endmacro -%}
+
+{%- macro tool_custom_get_command(name, items) -%}
+    {{- fn.get_val_by_type(name, items, 'command', 'custom', '') -}}
+{%- endmacro -%}
