@@ -1,0 +1,13 @@
+---
+
+check: codex --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: npm
+  package: "@openai/codex"
+  binary: codex
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

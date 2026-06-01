@@ -1,0 +1,11 @@
+---
+
+# The name of the module
+name: claude-code
+
+# Agentic image has no per-language axis; keep empty.
+exclude: []
+
+# In order for this tool to build/install correctly,
+# the following tools must have been installed first.
+depends: []

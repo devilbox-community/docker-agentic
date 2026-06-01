@@ -1,0 +1,21 @@
+# continue
+
+Continue.dev — open-source AI code assistant CLI companion to the
+Continue VS Code / JetBrains extensions.
+
+| Platform | Url                                            |
+|----------|------------------------------------------------|
+| NPM      | https://www.npmjs.com/package/@continuedev/cli |
+| GitHub   | https://github.com/continuedev/continue        |
+| Docs     | https://docs.continue.dev/                     |
+
+## Authentication
+
+Continue reads provider API keys from its config file (`~/.continue/config.json`)
+or from env vars such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`. Set these on
+the `devilboxcommunity/agentic` container or commit them to the config file.
+
+## Persistence
+
+Configuration, models, and assistant state persist at `/home/devilbox/.continue/`.
+Mount this path on the host to retain settings across container restarts.

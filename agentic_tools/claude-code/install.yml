@@ -1,0 +1,13 @@
+---
+
+check: claude --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: npm
+  package: "@anthropic-ai/claude-code"
+  binary: claude
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

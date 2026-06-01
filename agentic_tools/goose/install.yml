@@ -1,0 +1,17 @@
+---
+
+check: goose --version 2>&1 | grep -iE '[0-9]+\.[0-9]+' || (goose --version; false)
+
+all:
+  type: curl
+  command: "curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash && mv /root/.local/bin/goose /usr/local/bin/goose"
+  package: goose
+  binary: goose
+  version:
+  build_dep: []
+  run_dep:
+    - bzip2
+    - libxcb1
+    - libdbus-1-3
+  pre:
+  post:

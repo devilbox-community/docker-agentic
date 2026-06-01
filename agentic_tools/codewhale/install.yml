@@ -1,0 +1,14 @@
+---
+
+check: codewhale --version 2>&1 | grep -qiE '(codewhale|not yet)'
+
+all:
+  type: custom
+  command: curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool codewhale is not yet publicly available; config dir persisted at /home/devilbox/.config/codewhale"' 'exit 0' > /usr/local/bin/codewhale && chmod +x /usr/local/bin/codewhale && mkdir -p /home/devilbox/.config/codewhale
+  package: codewhale
+  binary: codewhale
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

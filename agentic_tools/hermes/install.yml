@@ -1,0 +1,14 @@
+---
+
+check: hermes --version 2>&1 | grep -qiE '(hermes|not yet)'
+
+all:
+  type: custom
+  command: curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool hermes is not yet publicly available; config dir persisted at /home/devilbox/.config/hermes"' 'exit 0' > /usr/local/bin/hermes && chmod +x /usr/local/bin/hermes && mkdir -p /home/devilbox/.config/hermes
+  package: hermes
+  binary: hermes
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:
