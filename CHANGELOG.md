@@ -1,5 +1,35 @@
 # Changelog
 
+## [Wave 9.2] — work stage now FROM base image (php-fpm pattern)
+
+Refactored `Dockerfile-work` to layer on top of the published base image
+artifact (`devilboxcommunity/agentic:<release>-base`) instead of rebuilding
+the base stage inline. Matches the docker-php-fpm convention where higher
+stages depend on the lower-tier published image. Also moves `data/` from
+`Dockerfiles/` to `Dockerfiles/base/` (it is only referenced by the base
+Dockerfile now).
+
+- `.ansible/DOCKERFILES/Dockerfile-work.j2`:
+  - Removed inline `FROM ubuntu AS base` block (apt deps, Go, user/group,
+    nvm+Node LTS, bun, rustup, docker-entrypoint, startup dirs, motd) —
+    ~110 lines deleted.
+  - Replaced with `FROM {{ docker_user }}/{{ image_name }}:{{ release }}-base AS work`.
+  - Removed 3 redundant `COPY data/...` directives (now inherited from base).
+- `git mv Dockerfiles/data Dockerfiles/base/data` (data/ only used by base stage now).
+- `Makefile`: reverted Wave 9.1 changes — `DIR = Dockerfiles/$(STAGE)` and
+  `FILE = Dockerfile-$(VERSION)` (matches docker-php-fpm exactly).
+- `.github/workflows/action.yml`: path filter `Dockerfiles/data/**` →
+  `Dockerfiles/base/data/**`.
+- `tests/test_toggle.bats` + `tests/test_browser_helper.bats`: paths
+  updated to `Dockerfiles/base/data/startup.1.d/...`.
+
+Effect: `Dockerfiles/work/Dockerfile-{latest,stable}` shrank from ~555 to
+141 lines each. Build flow: `make build STAGE=base` first publishes the
+base image, then `make build STAGE=work` layers tools on top.
+
+Verification: 28/28 bats pass; `make gen-dockerfiles` regenerates both
+work Dockerfiles with the new layered structure.
+
 ## [Wave 9.1] — data/ relocation to Dockerfiles/data/
 
 Moved `data/` from repo root to `Dockerfiles/data/` to align with the

@@ -2,114 +2,11 @@
 {{ edit_comment_work }}
 {% import './jinja2/macros-work.j2' as fn %}
 
-FROM ubuntu:{{ ubuntu_version }} AS base
-
-ARG MY_USER=devilbox
-ARG MY_GROUP=devilbox
-ARG MY_UID=1000
-ARG MY_GID=1000
-ARG GO_VERSION={{ go_version }}
-ARG TARGETARCH
-
-ENV DEBIAN_FRONTEND=noninteractive \
-    LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    PATH=/opt/nvm/current/bin:/root/.local/bin:/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-        bash \
-        build-essential \
-        ca-certificates \
-        curl \
-        git \
-        gnupg \
-        jq \
-        openssh-client \
-        passwd \
-        python3 \
-        python3-pip \
-        pipx \
-        sudo \
-        tini \
-        tzdata \
-        unzip \
-        xz-utils \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN set -eux \
-    && case "${TARGETARCH:-amd64}" in \
-        amd64) go_arch="amd64" ;; \
-        arm64) go_arch="arm64" ;; \
-        *) echo "Unsupported TARGETARCH: ${TARGETARCH}"; exit 1 ;; \
-    esac \
-    && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" -o /tmp/go.tgz \
-    && rm -rf /usr/local/go \
-    && tar -C /usr/local -xzf /tmp/go.tgz \
-    && rm -f /tmp/go.tgz
-
-RUN set -eux \
-    && if getent group "${MY_GID}" >/dev/null; then groupmod -n "${MY_GROUP}" "$(getent group "${MY_GID}" | cut -d: -f1)"; else groupadd -g "${MY_GID}" "${MY_GROUP}"; fi \
-    && if getent passwd "${MY_UID}" >/dev/null; then usermod -l "${MY_USER}" -d "/home/${MY_USER}" -m "$(getent passwd "${MY_UID}" | cut -d: -f1)"; else useradd -m -u "${MY_UID}" -g "${MY_GID}" -s /bin/bash "${MY_USER}"; fi \
-    && usermod -g "${MY_GROUP}" -s /bin/bash "${MY_USER}" \
-    && echo "${MY_USER} ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${MY_USER}" \
-    && chmod 0440 "/etc/sudoers.d/${MY_USER}" \
-    && mkdir -p /shared/httpd /startup.1.d /startup.2.d \
-    && chown -R "${MY_USER}:${MY_GROUP}" /shared /home/${MY_USER}
-
-# Install nvm + Node LTS (replaces nodesource apt nodejs)
-ENV NVM_DIR=/opt/nvm
-ENV NVM_VERSION={{ nvm_version | default('v0.40.4') }}
-ENV NODE_VERSION={{ node_version | default('lts/*') }}
-
-RUN set -eux \
-    && install -d -m 0755 /opt/nvm \
-    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
-       | NVM_DIR=/opt/nvm PROFILE=/dev/null bash \
-    && chown -R devilbox:devilbox /opt/nvm \
-    && su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm install "'"${NODE_VERSION}"'" && nvm alias default "'"${NODE_VERSION}"'"' devilbox \
-    && NODE_DIR="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && ln -sfn "$(dirname ${NODE_DIR})" /opt/nvm/current \
-    && for bin in node npm npx corepack; do \
-         [ -f "${NODE_DIR}/${bin}" ] && ln -sf "${NODE_DIR}/${bin}" "/usr/local/bin/${bin}"; \
-       done \
-    && /usr/local/bin/corepack enable \
-    && node --version && npm --version
-
-RUN set -eux \
-    && NODE_BIN="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && echo "export PATH=\"${NODE_BIN}:\$PATH\"" > /etc/profile.d/nvm-path.sh \
-    && echo "PATH=\"${NODE_BIN}:${PATH}\"" >> /etc/environment
-
-# Install bun
-ENV BUN_VERSION={{ bun_version | default('latest') }}
-RUN set -eux \
-    && curl -fsSL https://bun.sh/install | bash \
-    && install -m 0755 /root/.bun/bin/bun /usr/local/bin/bun \
-    && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
-    && rm -rf /root/.bun \
-    && bun --version
-
-RUN set -eux \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-        | su - "${MY_USER}" -c "sh -s -- -y --profile {{ rustup_profile }}" \
-    && su - "${MY_USER}" -c "rustup --version && cargo --version"
-
-COPY bin/docker-entrypoint.sh /docker-entrypoint.sh
-COPY data/startup.1.d/ /startup.1.d/
-COPY data/startup.2.d/ /startup.2.d/
-COPY data/motd /etc/motd
-
-RUN set -eux \
-    && chmod +x /docker-entrypoint.sh \
-    && find /startup.1.d /startup.2.d -type f -name '*.sh' -exec chmod +x {} + \
-    && chown -R "${MY_USER}:${MY_GROUP}" /startup.1.d /startup.2.d
-
-# Release builds tag the base stage as {{ docker_user }}/{{ image_name }}:base-{{ release }}.
-FROM base AS work
+# Work stage layers on top of the previously published base image
+# (devilboxcommunity/agentic:<release>-base). Matches the docker-php-fpm
+# convention where higher-tier stages FROM the lower-tier published image
+# rather than re-implementing it inline.
+FROM {{ docker_user }}/{{ image_name }}:{{ release }}-base AS work
 
 USER root
 

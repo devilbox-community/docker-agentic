@@ -34,8 +34,8 @@ NAME       = Agentic
 VERSION    = latest
 IMAGE      = $(ORG_USER)/agentic
 #STAGE      = base
-FILE       = $(STAGE)/Dockerfile-$(VERSION)
-DIR        = Dockerfiles
+FILE       = Dockerfile-$(VERSION)
+DIR        = Dockerfiles/$(STAGE)
 
 ifeq ($(strip $(TAG)),latest)
 DOCKER_TAG = $(VERSION)-$(STAGE)
