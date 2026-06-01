@@ -9,9 +9,11 @@ GitHub's `gh copilot` extension — suggest and explain shell commands using Cop
 
 ## Authentication
 
-**Device-code OAuth** via `gh auth login` (web flow prints a one-time code). Requires an active GitHub Copilot subscription on the account.
+**Device-code OAuth** via `gh auth login` (web flow prints a one-time code). Requires an active GitHub Copilot subscription on the account. Flow: device-code.
 
 ## Persistence
+
+**host: cfg/agentic-copilot/** → **container: /home/devilbox/.config/gh**
 
 | Host                    | Container path                  |
 |-------------------------|---------------------------------|

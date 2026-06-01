@@ -9,9 +9,11 @@ Anthropic's official agentic coding CLI. Runs an interactive agent that reads, e
 
 ## Authentication
 
-**Device-code OAuth.** Run `claude` and follow the printed URL on the host browser; the CLI persists tokens locally — no API key needed for Pro/Max plans. `ANTHROPIC_API_KEY` env var also supported.
+**Device-code OAuth.** Run `claude` and follow the printed URL on the host browser; the CLI persists tokens locally — no API key needed for Pro/Max plans. `ANTHROPIC_API_KEY` env var also supported. Flow: device-code.
 
 ## Persistence
+
+**host: cfg/agentic-claude/** → **container: /home/devilbox/.claude**
 
 | Host                          | Container path                  |
 |-------------------------------|---------------------------------|

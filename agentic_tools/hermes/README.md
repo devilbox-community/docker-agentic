@@ -12,12 +12,16 @@ the persistence path is reserved for when an official release lands.
 ## Authentication
 
 When an upstream CLI is released, expected auth is via API key environment variable
-(e.g. `NOUS_API_KEY`) or a config file under `~/.config/hermes/`.
+(e.g. `NOUS_API_KEY`) or a config file under `~/.config/hermes/`. Flow: stub.
 
 ## Persistence
+
+**host: cfg/agentic-hermes/** → **container: /home/devilbox/.config/hermes**
 
 The directory `~/.config/hermes/` (mapped to `/home/devilbox/.config/hermes`) is
 created at build time and should be mounted as a volume to persist credentials and
 agent state across container restarts.
+
+Status: STUB
 
 > **Stub notice**: invoking `hermes` currently prints an availability notice and exits 0.

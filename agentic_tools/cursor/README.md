@@ -12,10 +12,14 @@ on-disk configuration directory.
 ## Authentication
 
 Authentication happens inside the Cursor desktop application on the host
-(Cursor account, model API keys). The container stub does not read any env vars.
+(Cursor account, model API keys). The container stub does not read any env vars. Flow: stub.
 
 ## Persistence
+
+**host: cfg/agentic-cursor/** → **container: /home/devilbox/.cursor**
 
 Configuration persists at `/home/devilbox/.cursor/`. Mount this path on the
 host (or share it with your Cursor profile) to retain settings across
 container restarts.
+
+Status: STUB

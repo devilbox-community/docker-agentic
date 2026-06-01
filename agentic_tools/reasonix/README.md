@@ -12,12 +12,16 @@ persistence directory is reserved for when an upstream release lands.
 ## Authentication
 
 When upstream publishes a CLI, expected auth is via API key (e.g. `DEEPSEEK_API_KEY`)
-or a config file under `~/.config/reasonix/`.
+or a config file under `~/.config/reasonix/`. Flow: stub.
 
 ## Persistence
+
+**host: cfg/agentic-reasonix/** → **container: /home/devilbox/.config/reasonix**
 
 The directory `~/.config/reasonix/` (mapped to `/home/devilbox/.config/reasonix`) is
 created at build time and should be mounted as a volume to persist credentials and
 reasoning-agent state across container restarts.
+
+Status: STUB
 
 > **Stub notice**: invoking `reasonix` currently prints an availability notice and exits 0.

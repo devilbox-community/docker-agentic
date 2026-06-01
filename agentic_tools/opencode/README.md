@@ -10,9 +10,11 @@ Open-source, model-agnostic terminal agent. Plug in Anthropic, OpenAI, OpenRoute
 
 ## Authentication
 
-**Callback OAuth (per provider).** Run `opencode auth login` and pick a provider; the CLI launches a browser callback flow and writes tokens to `auth.json`. Provider API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, …) are also honored.
+**Callback OAuth (per provider).** Run `opencode auth login` and pick a provider; the CLI launches a browser callback flow and writes tokens to `auth.json`. Provider API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, …) are also honored. Flow: callback.
 
 ## Persistence
+
+**host: cfg/agentic-opencode/** → **container: /home/devilbox/.config/opencode**
 
 | Host                    | Container path                            |
 |-------------------------|-------------------------------------------|

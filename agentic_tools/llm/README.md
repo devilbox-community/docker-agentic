@@ -18,9 +18,11 @@ llm keys set openai
 llm keys set anthropic
 ```
 
-Keys are stored in the persisted config directory.
+Keys are stored in the persisted config directory. Flow: api-key.
 
 ## Persistence
+
+**host: cfg/agentic-llm/** → **container: /home/devilbox/.config/io.datasette.llm**
 
 The directory `~/.config/io.datasette.llm/` (mapped to
 `/home/devilbox/.config/io.datasette.llm`) holds keys, logged prompts, templates and
