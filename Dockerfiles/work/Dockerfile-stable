@@ -13,7 +13,7 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PATH=/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
+    PATH=/root/.local/bin:/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -88,6 +88,73 @@ USER root
 
 
 
+# -------------------- aider --------------------
+RUN set -eux; \
+    pipx install aider-chat; \
+    ln -sf /root/.local/bin/aider /usr/local/bin/aider; \
+    chmod -R a+rx /root; \
+    true
+# -------------------- claude-code --------------------
+RUN set -eux; \
+    npm install -g @anthropic-ai/claude-code; \
+    true
+# -------------------- cline --------------------
+RUN set -eux; \
+    curl --version >/dev/null && printf '%s\n' '#!/bin/sh' 'echo "Use Cline in VS Code; this container persists config at /home/devilbox/.config/cline"' > /usr/local/bin/cline && chmod +x /usr/local/bin/cline; \
+    true
+# -------------------- codewhale --------------------
+RUN set -eux; \
+    curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool codewhale is not yet publicly available; config dir persisted at /home/devilbox/.config/codewhale"' 'exit 0' > /usr/local/bin/codewhale && chmod +x /usr/local/bin/codewhale && mkdir -p /home/devilbox/.config/codewhale; \
+    true
+# -------------------- codex --------------------
+RUN set -eux; \
+    npm install -g @openai/codex; \
+    true
+# -------------------- continue --------------------
+RUN set -eux; \
+    npm install -g @continuedev/cli; \
+    true
+# -------------------- crush --------------------
+RUN set -eux; \
+    npm install -g @charmland/crush; \
+    mkdir -p /home/devilbox/.config/crush; \
+    true
+# -------------------- cursor --------------------
+RUN set -eux; \
+    curl --version >/dev/null && printf '%s\n' '#!/bin/sh' 'echo "Use Cursor IDE on the host; this container persists config at /home/devilbox/.cursor"' > /usr/local/bin/cursor-agent && chmod +x /usr/local/bin/cursor-agent; \
+    true
+# -------------------- gh-copilot --------------------
+RUN set -eux; \
+    if ! command -v gh >/dev/null 2>&1; then curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*; fi; \
+    gh copilot --help >/dev/null; \
+    true
+# -------------------- goose --------------------
+RUN set -eux; \
+    curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash && mv /root/.local/bin/goose /usr/local/bin/goose; \
+    true
+# -------------------- hermes --------------------
+RUN set -eux; \
+    curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool hermes is not yet publicly available; config dir persisted at /home/devilbox/.config/hermes"' 'exit 0' > /usr/local/bin/hermes && chmod +x /usr/local/bin/hermes && mkdir -p /home/devilbox/.config/hermes; \
+    true
+# -------------------- llm --------------------
+RUN set -eux; \
+    pipx install llm; \
+    ln -sf /root/.local/bin/llm /usr/local/bin/llm; \
+    chmod -R a+rx /root; \
+    mkdir -p /home/devilbox/.config/io.datasette.llm; \
+    true
+# -------------------- opencode --------------------
+RUN set -eux; \
+    npm install -g opencode-ai; \
+    true
+# -------------------- qwen-code --------------------
+RUN set -eux; \
+    npm install -g @qwen-code/qwen-code; \
+    true
+# -------------------- reasonix --------------------
+RUN set -eux; \
+    curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool reasonix is not yet publicly available; config dir persisted at /home/devilbox/.config/reasonix"' 'exit 0' > /usr/local/bin/reasonix && chmod +x /usr/local/bin/reasonix && mkdir -p /home/devilbox/.config/reasonix; \
+    true
 
 USER devilbox
 WORKDIR /shared/httpd
