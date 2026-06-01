@@ -9,9 +9,11 @@ OpenAI's official terminal agent — runs Codex/GPT models with sandboxed shell,
 
 ## Authentication
 
-**Hybrid: api-key or device-code.** Set `OPENAI_API_KEY` env var, or run `codex login` to use ChatGPT-account device-flow OAuth. Tokens persist in `~/.codex/`.
+**Hybrid: api-key or device-code.** Set `OPENAI_API_KEY` env var, or run `codex login` to use ChatGPT-account device-flow OAuth. Tokens persist in `~/.codex/`. Flow: hybrid.
 
 ## Persistence
+
+**host: cfg/agentic-codex/** → **container: /home/devilbox/.codex**
 
 | Host                  | Container path             |
 |-----------------------|----------------------------|

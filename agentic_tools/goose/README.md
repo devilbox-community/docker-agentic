@@ -15,9 +15,11 @@ Goose uses API keys for LLM providers. Set one of:
 - `ANTHROPIC_API_KEY`
 - `GOOGLE_API_KEY`
 
-Pass via Docker env on the `devilboxcommunity/agentic` container, or run `goose configure` interactively.
+Pass via Docker env on the `devilboxcommunity/agentic` container, or run `goose configure` interactively. Flow: api-key.
 
 ## Persistence
+
+**host: cfg/agentic-goose/** → **container: /home/devilbox/.config/goose**
 
 Configuration and session data persist at `/home/devilbox/.config/goose/`.
 Mount this path on the host to retain profiles across container restarts.

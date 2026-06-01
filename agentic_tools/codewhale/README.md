@@ -12,12 +12,16 @@ reserved for a future release.
 ## Authentication
 
 Unknown — to be defined when (if) upstream publishes a CLI. Likely API key based,
-configured under `~/.config/codewhale/`.
+configured under `~/.config/codewhale/`. Flow: stub.
 
 ## Persistence
+
+**host: cfg/agentic-codewhale/** → **container: /home/devilbox/.config/codewhale**
 
 The directory `~/.config/codewhale/` (mapped to `/home/devilbox/.config/codewhale`) is
 created at build time and should be mounted as a volume to persist any future
 credentials or agent state.
+
+Status: STUB
 
 > **Stub notice**: invoking `codewhale` currently prints an availability notice and exits 0.

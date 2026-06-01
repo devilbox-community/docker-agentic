@@ -10,9 +10,11 @@ AI pair programmer in your terminal — git-aware, multi-file edits across most 
 
 ## Authentication
 
-**API-key (env vars).** Set one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, etc. — aider picks the provider from `--model` or `AIDER_MODEL`.
+**API-key (env vars).** Set one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, etc. — aider picks the provider from `--model` or `AIDER_MODEL`. Flow: api-key.
 
 ## Persistence
+
+**host: cfg/agentic-aider/** → **container: /home/devilbox/.aider**
 
 | Host                  | Container path             |
 |-----------------------|----------------------------|

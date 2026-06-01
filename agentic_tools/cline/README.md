@@ -13,9 +13,13 @@ and preserves the on-disk configuration directory.
 
 Authentication is configured inside the Cline VS Code extension on the host
 (API keys for Anthropic, OpenAI, OpenRouter, etc.). No env vars are read by
-the container stub.
+the container stub. Flow: stub.
 
 ## Persistence
 
+**host: cfg/agentic-cline/** → **container: /home/devilbox/.config/cline**
+
 Configuration persists at `/home/devilbox/.config/cline/`. Mount this path on
 the host (or share it with the VS Code extension data dir) to retain settings.
+
+Status: STUB
