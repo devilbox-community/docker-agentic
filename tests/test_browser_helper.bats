@@ -10,7 +10,7 @@
     DVL_BROWSER_PROFILE="${profile}" \
     DVL_OAUTH_DIR="${tmpdir}/oauth" \
     DVL_OAUTH_FIFO="${fifo}" \
-    data/startup.1.d/10-oauth-helper.sh
+    Dockerfiles/data/startup.1.d/10-oauth-helper.sh
 
   DVL_OAUTH_FIFO="${fifo}" "${helper}" https://example.com &
   helper_pid="$!"
@@ -26,5 +26,5 @@
 }
 
 @test "startup exports BROWSER with production default path" {
-  grep -q '/usr/local/bin/dvl-open-host' data/startup.1.d/10-oauth-helper.sh
+  grep -q '/usr/local/bin/dvl-open-host' Dockerfiles/data/startup.1.d/10-oauth-helper.sh
 }
