@@ -11,6 +11,8 @@ cd devilbox
 ./dvl agent shell
 ```
 
+Node.js is managed via nvm at `/opt/nvm` (default: LTS). Bun is available at `/usr/local/bin/bun`.
+
 ## Bundled CLI tools
 
 | Name | Install type | Auth method | Persistence path |

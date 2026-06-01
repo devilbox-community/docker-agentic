@@ -9,7 +9,9 @@ edit_comment_work: "# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dock
 docker_user: devilboxcommunity
 image_name: agentic
 ubuntu_version: "24.04"
-node_major: "22"
+nvm_version: "v0.40.4"
+node_version: "lts/*"
+bun_version: "latest"
 go_version: "1.23.4"
 rustup_profile: minimal
 
