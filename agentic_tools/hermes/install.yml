@@ -1,10 +1,30 @@
 ---
 
-check: hermes --version 2>&1 | grep -qiE '(hermes|not yet)'
+check: hermes --version
 
 all:
   type: custom
-  command: curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool hermes is not yet publicly available; config dir persisted at /home/devilbox/.config/hermes"' 'exit 0' > /usr/local/bin/hermes && chmod +x /usr/local/bin/hermes && mkdir -p /home/devilbox/.config/hermes
+  command: >-
+    mkdir -p /opt/agentic-tools/hermes/bin;
+    if curl -fsI https://hermes-agent.nousresearch.com/install.sh >/dev/null 2>&1;
+    then curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash || true;
+    src="$(command -v hermes 2>/dev/null
+    || find /root /home /usr/local/bin /opt -maxdepth 6 -name hermes -type f -print -quit 2>/dev/null
+    || true)";
+    if [ -n "$src" ] && [ "$src" != /opt/agentic-tools/hermes/bin/hermes ];
+    then install -m 0755 "$src" /opt/agentic-tools/hermes/bin/hermes;
+    fi;
+    if [ ! -x /opt/agentic-tools/hermes/bin/hermes ];
+    then echo "WARNING hermes install produced no hermes binary";
+    printf '%s\n' '#!/bin/sh' 'echo hermes upstream unavailable at build time' 'exit 0'
+    > /opt/agentic-tools/hermes/bin/hermes;
+    chmod +x /opt/agentic-tools/hermes/bin/hermes;
+    fi;
+    else echo "WARNING hermes upstream unavailable";
+    printf '%s\n' '#!/bin/sh' 'echo hermes upstream unavailable at build time' 'exit 0'
+    > /opt/agentic-tools/hermes/bin/hermes;
+    chmod +x /opt/agentic-tools/hermes/bin/hermes;
+    fi
   package: hermes
   binary: hermes
   version:

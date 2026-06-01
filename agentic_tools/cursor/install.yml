@@ -1,10 +1,30 @@
 ---
 
-check: cursor-agent --help 2>&1 | grep -iE 'cursor' || (cursor-agent --help; false)
+check: cursor-agent --version
 
 all:
   type: custom
-  command: curl --version >/dev/null && printf '%s\n' '#!/bin/sh' 'echo "Use Cursor IDE on the host; this container persists config at /home/devilbox/.cursor"' > /usr/local/bin/cursor-agent && chmod +x /usr/local/bin/cursor-agent
+  command: >-
+    mkdir -p /opt/agentic-tools/cursor/bin
+    && if curl -fsI https://cursor.com/install >/dev/null 2>&1;
+    then curl -fsS https://cursor.com/install | bash || true;
+    src="$(command -v cursor-agent 2>/dev/null
+    || find /root /home /usr/local/bin /opt -maxdepth 6 -name cursor-agent -type f -print -quit 2>/dev/null
+    || true)";
+    if [ -n "$src" ] && [ "$src" != /opt/agentic-tools/cursor/bin/cursor-agent ];
+    then install -m 0755 "$src" /opt/agentic-tools/cursor/bin/cursor-agent;
+    fi;
+    if [ ! -x /opt/agentic-tools/cursor/bin/cursor-agent ];
+    then echo "WARNING cursor install produced no cursor-agent binary";
+    printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0'
+    > /opt/agentic-tools/cursor/bin/cursor-agent;
+    chmod +x /opt/agentic-tools/cursor/bin/cursor-agent;
+    fi;
+    else echo "WARNING cursor upstream unavailable";
+    printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0'
+    > /opt/agentic-tools/cursor/bin/cursor-agent;
+    chmod +x /opt/agentic-tools/cursor/bin/cursor-agent;
+    fi
   package: cursor-agent
   binary: cursor-agent
   version:

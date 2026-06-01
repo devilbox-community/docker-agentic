@@ -4,9 +4,14 @@ Open-source, model-agnostic terminal agent. Plug in Anthropic, OpenAI, OpenRoute
 
 | Platform | Url                                                              |
 |----------|------------------------------------------------------------------|
-| NPM      | https://www.npmjs.com/package/opencode-ai                        |
+| Install  | `curl -fsSL https://opencode.ai/install \| bash` (native)        |
 | Site     | https://opencode.ai                                              |
 | GitHub   | https://github.com/sst/opencode                                  |
+
+Installed via the official native installer (no npm). Binary is relocated to
+`/opt/agentic-tools/opencode/bin/opencode` at build.
+
+Default-toggle: **ON** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
 
 ## Authentication
 

@@ -3,6 +3,8 @@
 Simon Willison's `llm` — a CLI for interacting with LLMs, supporting OpenAI, Anthropic,
 local models, and plugins. Real, actively maintained.
 
+Default-toggle: **OFF** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
+
 | Platform | Url                                                              |
 |----------|------------------------------------------------------------------|
 | PyPI     | https://pypi.org/project/llm/                                    |

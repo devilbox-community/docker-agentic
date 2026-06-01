@@ -3,11 +3,17 @@
 Continue.dev — open-source AI code assistant CLI companion to the
 Continue VS Code / JetBrains extensions.
 
-| Platform | Url                                            |
-|----------|------------------------------------------------|
-| NPM      | https://www.npmjs.com/package/@continuedev/cli |
-| GitHub   | https://github.com/continuedev/continue        |
-| Docs     | https://docs.continue.dev/                     |
+| Platform | Url                                                           |
+|----------|---------------------------------------------------------------|
+| Install  | `curl -fsSL https://continue.dev/install.sh \| bash` (native) |
+| GitHub   | https://github.com/continuedev/continue                       |
+| Docs     | https://docs.continue.dev/                                    |
+
+Installed via the official native installer (bundles its own Node runtime;
+no npm). Binary is relocated to `/opt/agentic-tools/continue/bin/continue`
+at build.
+
+Default-toggle: **OFF** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
 
 ## Authentication
 

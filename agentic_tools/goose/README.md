@@ -2,6 +2,8 @@
 
 Block's goose — open-source AI agent for software engineering.
 
+Default-toggle: **OFF** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
+
 | Platform | Url                                       |
 |----------|-------------------------------------------|
 | GitHub   | https://github.com/block/goose            |

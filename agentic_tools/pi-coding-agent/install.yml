@@ -1,0 +1,25 @@
+---
+
+check: pi --version 2>&1 | grep -qiE '(pi|not yet)'
+
+all:
+  type: custom
+  command: |
+    set -e; mkdir -p /opt/agentic-tools/pi-coding-agent/bin; \
+    if curl -fsI --max-time 10 https://pi.dev/install.sh >/dev/null 2>&1; then \
+      curl -fsSL https://pi.dev/install.sh | sh || true; \
+      for c in /usr/local/bin/pi /root/.local/bin/pi /usr/lib/node_modules/@earendil-works/pi-coding-agent/bin/pi /usr/local/lib/node_modules/@earendil-works/pi-coding-agent/bin/pi; do \
+        if [ -x "$c" ] && [ ! -e /opt/agentic-tools/pi-coding-agent/bin/pi ]; then mv "$c" /opt/agentic-tools/pi-coding-agent/bin/pi; fi; \
+      done; \
+    fi; \
+    if [ ! -x /opt/agentic-tools/pi-coding-agent/bin/pi ]; then \
+      printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: pi.dev install.sh unreachable at build time; stub installed."' 'exit 0' > /opt/agentic-tools/pi-coding-agent/bin/pi; \
+      chmod +x /opt/agentic-tools/pi-coding-agent/bin/pi; \
+    fi
+  package: "@earendil-works/pi-coding-agent"
+  binary: pi
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

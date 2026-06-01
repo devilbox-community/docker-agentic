@@ -1,4 +1,11 @@
 #!/usr/bin/env sh
+#
+# 10-oauth-helper.sh — install dvl-open-host shim + OAuth callback FIFO.
+#
+# Loaded from /opt/agentic-tools/_entrypoint.d/ before user-mounted /startup.1.d/
+# so it survives the devilbox cfg/agentic-startup bind-mount over /startup.1.d.
+# A copy also lives in /startup.1.d/ for visibility on non-devilbox runs.
+
 set -eu
 
 if [ "$(id -u)" != "0" ] && [ -z "${DVL_OPEN_HOST_BIN:-}" ]; then

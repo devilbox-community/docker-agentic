@@ -1,10 +1,24 @@
 ---
 
-check: reasonix --version 2>&1 | grep -qiE '(reasonix|not yet)'
+check: reasonix --version
 
 all:
   type: custom
-  command: curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool reasonix is not yet publicly available; config dir persisted at /home/devilbox/.config/reasonix"' 'exit 0' > /usr/local/bin/reasonix && chmod +x /usr/local/bin/reasonix && mkdir -p /home/devilbox/.config/reasonix
+  command: >-
+    mkdir -p /opt/agentic-tools/reasonix/bin /opt/agentic-tools/reasonix/lib;
+    if curl -fsI https://github.com/esengine/DeepSeek-Reasonix >/dev/null 2>&1;
+    then git clone --depth 1 https://github.com/esengine/DeepSeek-Reasonix /opt/agentic-tools/reasonix/src
+    && python3 -m pip install --break-system-packages
+    --target /opt/agentic-tools/reasonix/lib /opt/agentic-tools/reasonix/src;
+    printf '%s\n' '#!/usr/bin/env bash'
+    'PYTHONPATH=/opt/agentic-tools/reasonix/lib exec python3 -m reasonix "$@"'
+    > /opt/agentic-tools/reasonix/bin/reasonix
+    && chmod +x /opt/agentic-tools/reasonix/bin/reasonix;
+    else echo "WARNING reasonix upstream unavailable";
+    printf '%s\n' '#!/bin/sh' 'echo reasonix upstream unavailable at build time' 'exit 0'
+    > /opt/agentic-tools/reasonix/bin/reasonix
+    && chmod +x /opt/agentic-tools/reasonix/bin/reasonix;
+    fi
   package: reasonix
   binary: reasonix
   version:

@@ -4,8 +4,13 @@ Anthropic's official agentic coding CLI. Runs an interactive agent that reads, e
 
 | Platform | Url                                                              |
 |----------|------------------------------------------------------------------|
-| NPM      | https://www.npmjs.com/package/@anthropic-ai/claude-code          |
+| Install  | `curl -fsSL https://claude.ai/install.sh \| bash` (native)       |
 | Docs     | https://docs.claude.com/en/docs/claude-code                      |
+
+Installed via the official native installer (no npm). Binary is relocated to
+`/opt/agentic-tools/claude-code/bin/claude` at build; Wave 8D's runtime toggle
+symlinks it into `/usr/local/bin/claude` when the tool is enabled. See
+[toggle documentation](../../README.md#enabledisable-toggle).
 
 ## Authentication
 

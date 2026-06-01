@@ -1,11 +1,12 @@
 ---
 
-check: qwen --version 2>&1 | grep -iE '[0-9]+\.[0-9]+' || (qwen --version; false)
+check: qwen-code --version 2>&1 | grep -iE '[0-9]+\.[0-9]+' || (qwen-code --version; false)
 
 all:
-  type: npm
-  package: "@qwen-code/qwen-code"
-  binary: qwen
+  type: custom
+  command: "mkdir -p /opt/agentic-tools/qwen-code/bin /tmp/qwen-x && if curl -fsI https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz >/dev/null 2>&1; then curl -fsSL https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz | tar xz -C /tmp/qwen-x && BIN=$(find /tmp/qwen-x -type f -name 'qwen-code' | head -n1) && [ -n \"$BIN\" ] && install -D -m 0755 \"$BIN\" /opt/agentic-tools/qwen-code/bin/qwen-code && rm -rf /tmp/qwen-x; else echo 'WARN: qwen-code primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi"
+  package: qwen-code
+  binary: qwen-code
   version:
   build_dep: []
   run_dep: []

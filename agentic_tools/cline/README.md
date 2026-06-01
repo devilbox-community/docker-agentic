@@ -4,6 +4,8 @@ Cline (formerly Claude Dev) — autonomous coding agent shipped as a VS Code ext
 No standalone CLI exists; this container installs a stub that points users to VS Code
 and preserves the on-disk configuration directory.
 
+Default-toggle: **OFF** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
+
 | Platform   | Url                                                  |
 |------------|------------------------------------------------------|
 | GitHub     | https://github.com/cline/cline                       |

@@ -1,0 +1,23 @@
+---
+
+check: multica version 2>&1 | grep -qiE '(multica|not yet|[0-9]+\.[0-9]+)'
+
+all:
+  type: custom
+  command: |
+    set -e; mkdir -p /opt/agentic-tools/multica/bin; \
+    MULTICA_SRC="${MULTICA_SRC:-/workspace/multica}"; \
+    if [ -d "$MULTICA_SRC/apps/cli" ]; then \
+      cd "$MULTICA_SRC/apps/cli" && go build -o /opt/agentic-tools/multica/bin/multica ./cmd/multica; \
+    else \
+      echo "WARNING: multica sibling repo not bind-mounted at $MULTICA_SRC; skipping CLI build (Wave 8F1 compose stack still optional)"; \
+      printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: multica CLI not built — sibling repo was absent at image build time."' 'exit 0' > /opt/agentic-tools/multica/bin/multica; \
+      chmod +x /opt/agentic-tools/multica/bin/multica; \
+    fi
+  package: multica
+  binary: multica
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:
