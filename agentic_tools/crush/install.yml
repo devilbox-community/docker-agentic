@@ -1,0 +1,13 @@
+---
+
+check: crush --version 2>&1 | grep -qiE '(crush|[0-9]+\.[0-9]+)'
+
+all:
+  type: npm
+  package: "@charmland/crush"
+  binary: crush
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post: mkdir -p /home/devilbox/.config/crush

@@ -1,0 +1,14 @@
+---
+
+check: cline --help 2>&1 | grep -iE 'cline' || (cline --help; false)
+
+all:
+  type: custom
+  command: curl --version >/dev/null && printf '%s\n' '#!/bin/sh' 'echo "Use Cline in VS Code; this container persists config at /home/devilbox/.config/cline"' > /usr/local/bin/cline && chmod +x /usr/local/bin/cline
+  package: cline
+  binary: cline
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

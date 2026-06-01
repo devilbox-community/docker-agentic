@@ -1,0 +1,14 @@
+---
+
+check: reasonix --version 2>&1 | grep -qiE '(reasonix|not yet)'
+
+all:
+  type: custom
+  command: curl --version >/dev/null && printf '%s\n' '#!/usr/bin/env bash' 'echo "Tool reasonix is not yet publicly available; config dir persisted at /home/devilbox/.config/reasonix"' 'exit 0' > /usr/local/bin/reasonix && chmod +x /usr/local/bin/reasonix && mkdir -p /home/devilbox/.config/reasonix
+  package: reasonix
+  binary: reasonix
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:
