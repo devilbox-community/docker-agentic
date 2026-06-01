@@ -1,5 +1,23 @@
 # Changelog
 
+## [Wave 9.1] — data/ relocation to Dockerfiles/data/
+
+Moved `data/` from repo root to `Dockerfiles/data/` to align with the
+docker-nginx-stable layout and to match the Makefile's build context.
+
+- `git mv data Dockerfiles/data` (6 files: motd, 3 .gitkeeps, 2 startup scripts).
+- Makefile: `DIR = Dockerfiles` and `FILE = $(STAGE)/Dockerfile-$(VERSION)`
+  so docker build context is `Dockerfiles/` (was `Dockerfiles/$(STAGE)/`,
+  which would have made the existing `COPY data/...` directives unreachable).
+- Dockerfile `COPY data/...` directives stay literally identical (`data/`
+  now resolves to `Dockerfiles/data/` from the new context).
+- Ansible jinja templates unchanged (same `COPY data/...` content).
+- `.github/workflows/action.yml` path filter: `data/**` → `Dockerfiles/data/**`.
+- `tests/test_toggle.bats` + `tests/test_browser_helper.bats` updated to
+  reference `Dockerfiles/data/startup.1.d/...`.
+
+Verification: 28/28 bats pass; `make gen-dockerfiles` produces no diff.
+
 ## [Wave 9] — CI/CD canonical pattern alignment
 
 Replaced 3 ad-hoc GitHub Actions workflows (build-base.yml, build-work.yml,

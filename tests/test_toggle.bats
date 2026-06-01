@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-    SCRIPT="${BATS_TEST_DIRNAME}/../data/startup.1.d/20-agentic-toggle.sh"
+    SCRIPT="${BATS_TEST_DIRNAME}/../Dockerfiles/data/startup.1.d/20-agentic-toggle.sh"
     DEFAULTS="${BATS_TEST_DIRNAME}/../agentic_tools/_defaults.yml"
     TMPDIR_T="$(mktemp -d)"
     export AGENTIC_TOOLS_PREFIX="${TMPDIR_T}/opt/agentic-tools"
