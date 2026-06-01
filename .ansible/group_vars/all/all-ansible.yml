@@ -1,0 +1,20 @@
+---
+###################################################################################################
+# Ansible specific definitions
+###################################################################################################
+
+edit_comment_base: "# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-base.j2 instead."
+edit_comment_work: "# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-work.j2 instead."
+
+docker_user: devilboxcommunity
+image_name: agentic
+ubuntu_version: "24.04"
+node_major: "22"
+go_version: "1.23.4"
+rustup_profile: minimal
+
+template_dockerfiles:
+  - src: DOCKERFILES/Dockerfile-base.j2
+    dst: "../Dockerfiles/base/Dockerfile-{{ release }}"
+  - src: DOCKERFILES/Dockerfile-work.j2
+    dst: "../Dockerfiles/work/Dockerfile-{{ release }}"
