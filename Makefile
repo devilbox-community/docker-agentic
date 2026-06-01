@@ -191,7 +191,7 @@ test: test-integration
 
 .PHONY: test-integration
 test-integration:
-	bats tests/
+	bash tests/test.sh
 
 
 # -------------------------------------------------------------------------------------------------
