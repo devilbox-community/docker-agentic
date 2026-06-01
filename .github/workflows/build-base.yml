@@ -1,0 +1,21 @@
+---
+name: build-base
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, main]
+
+jobs:
+  build-base:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        release: [latest, stable]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Generate Dockerfiles
+        run: make generate
+      - name: Build base image
+        run: make build-base RELEASE=${{ matrix.release }}
