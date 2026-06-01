@@ -61,6 +61,8 @@ source_dir() {
 
 change_uid_gid
 set_timezone
+# Protected agentic init dir (not shadowed by cfg bind-mount over /startup.1.d).
+source_dir /opt/agentic-tools/_entrypoint.d
 source_dir /startup.1.d
 source_dir /startup.2.d
 

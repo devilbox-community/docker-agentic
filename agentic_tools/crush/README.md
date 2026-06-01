@@ -2,11 +2,19 @@
 
 Crush is Charm.sh's AI coding agent for the terminal. Real, actively maintained.
 
-| Platform | Url                                                              |
-|----------|------------------------------------------------------------------|
-| Upstream | https://charm.sh/                                                |
-| GitHub   | https://github.com/charmbracelet/crush                           |
-| Install  | https://raw.githubusercontent.com/charmbracelet/crush/install.sh |
+| Platform | Url                                                                                                |
+|----------|----------------------------------------------------------------------------------------------------|
+| Upstream | https://charm.sh/                                                                                  |
+| GitHub   | https://github.com/charmbracelet/crush                                                             |
+| Release  | https://github.com/charmbracelet/crush/releases/latest (Debian `.deb`, version queried via GH API) |
+
+Installed from the official Debian `.deb` published in GitHub Releases (no
+npm, no brew). The build step queries the GH API for the latest `tag_name`,
+downloads `crush_<VER>_amd64.deb`, `dpkg -i`s it, then relocates the binary
+to `/opt/agentic-tools/crush/bin/crush`. Fallback: `go install` (Go from
+BASE image) when the release probe fails.
+
+Default-toggle: **OFF** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
 
 ## Authentication
 

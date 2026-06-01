@@ -1,0 +1,28 @@
+# Authoritative list of agentic tools enabled by default at container startup.
+# Read by data/startup.1.d/20-agentic-toggle.sh at runtime.
+#
+# This file is the SINGLE SOURCE OF TRUTH for runtime defaults. The per-tool
+# `enabled_by_default` field in agentic_tools/<slug>/options.yml is kept for
+# documentation purposes only; this file overrides it.
+#
+# To change which tools are enabled out-of-the-box, edit only this list and
+# rebuild the image (so the file is COPY'd into /opt/agentic-tools/_defaults.yml).
+#
+# Users can override at runtime via environment variables:
+#   AGENTIC_TOOLS_ENABLE=slug1,slug2     # add to defaults
+#   AGENTIC_TOOLS_DISABLE=slug3,slug4    # remove from final set (DISABLE wins)
+#
+# No "all" or wildcard support — list slugs explicitly.
+---
+enabled_by_default:
+  - claude-code
+  - opencode
+  - codex
+  - cursor
+  - codewhale
+  - reasonix
+  - hermes
+  - openclaw
+  - pi-coding-agent
+  - gh-copilot
+  - gemini

@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - name: Generate Dockerfiles
-        run: make generate
+        run: make gen
+      - name: Build base image (parent)
+        run: make build STAGE=base VERSION=${{ matrix.release }}
       - name: Build work image
-        run: make build-work RELEASE=${{ matrix.release }}
+        run: make build STAGE=work VERSION=${{ matrix.release }}

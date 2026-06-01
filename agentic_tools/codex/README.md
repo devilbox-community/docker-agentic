@@ -4,8 +4,13 @@ OpenAI's official terminal agent — runs Codex/GPT models with sandboxed shell,
 
 | Platform | Url                                                              |
 |----------|------------------------------------------------------------------|
-| NPM      | https://www.npmjs.com/package/@openai/codex                      |
+| Install  | `curl -fsSL https://chatgpt.com/codex/install.sh \| sh` (native) |
 | GitHub   | https://github.com/openai/codex                                  |
+
+Installed via the official native installer (no npm). Binary is relocated to
+`/opt/agentic-tools/codex/bin/codex` at build.
+
+Default-toggle: **ON** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
 
 ## Authentication
 

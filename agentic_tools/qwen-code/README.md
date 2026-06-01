@@ -3,10 +3,15 @@
 Qwen Code — Alibaba's coding agent CLI built on the Qwen models, forked from
 Gemini CLI and adapted for Qwen3-Coder.
 
-| Platform | Url                                              |
-|----------|--------------------------------------------------|
-| NPM      | https://www.npmjs.com/package/@qwen-code/qwen-code |
-| GitHub   | https://github.com/QwenLM/qwen-code              |
+| Platform | Url                                                                                          |
+|----------|----------------------------------------------------------------------------------------------|
+| Release  | https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz      |
+| GitHub   | https://github.com/QwenLM/qwen-code                                                          |
+
+Installed from the official Linux x64 release tarball (no npm). Binary is
+relocated to `/opt/agentic-tools/qwen-code/bin/qwen-code` at build.
+
+Default-toggle: **OFF** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
 
 ## Authentication
 

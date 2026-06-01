@@ -2,6 +2,8 @@
 
 AI pair programmer in your terminal — git-aware, multi-file edits across most frontier models.
 
+Default-toggle: **OFF** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
+
 | Platform | Url                                                              |
 |----------|------------------------------------------------------------------|
 | PyPI     | https://pypi.org/project/aider-chat/                             |

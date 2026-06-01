@@ -2,6 +2,8 @@
 
 GitHub's `gh copilot` extension — suggest and explain shell commands using Copilot, straight from the terminal.
 
+Default-toggle: **ON** — symlinked into `/usr/local/bin` at runtime. See [toggle documentation](../../README.md#enabledisable-toggle).
+
 | Platform | Url                                                              |
 |----------|------------------------------------------------------------------|
 | GH CLI   | https://cli.github.com                                           |
