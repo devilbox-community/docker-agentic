@@ -1,0 +1,372 @@
+---
+
+# -------------------------------------------------------------------------------------------------
+# Job Name
+# -------------------------------------------------------------------------------------------------
+name: 🤞 Manual Build
+
+
+# -------------------------------------------------------------------------------------------------
+# When to run
+# -------------------------------------------------------------------------------------------------
+on:
+  # Dispatch: allows for manual trigger via GH UI
+  workflow_dispatch:
+    inputs:
+      run-name:
+        description: 'Name of workflow'
+        required: true
+        default: '🤞 Manual Build'
+        type: string
+      stage:
+        description: 'Build stage'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - base
+          - work
+          - all
+      version:
+        description: 'Comma separated list of version (example: "latest", "stable")'
+        required: true
+        default: '"latest"'
+        type: string
+      arch:
+        description: 'Comma separated list of Arch platform (example: "linux/amd64", "linux/arm64")'
+        required: true
+        default: '"linux/amd64", "linux/arm64"'
+        type: string
+      default_branch:
+        description: 'The default branch of this repository to fetch latest tags from. Default: master'
+        required: false
+        default: 'master'
+        type: string
+      tag:
+        description: 'The name for the "latest" Docker tag (default: latest).'
+        required: false
+        default: 'latest'
+        type: string
+      branches:
+        description: 'Comma separated list of branches to create build matrix for. (example: my-image)'
+        required: false
+        type: string
+      enabled:
+        description: 'Enable'
+        type: boolean
+        required: true
+        default: true
+      deploy:
+        description: 'Deploy image'
+        type: boolean
+        required: true
+        default: false
+
+
+# -------------------------------------------------------------------------------------------------
+# Custom Variables
+# -------------------------------------------------------------------------------------------------
+env:
+  VERSIONS: >-
+    [
+      {
+        "NAME":    "Agentic",
+        "VERSION": ${{ format('[{0}]', inputs.version) }},
+        "FLAVOUR": ["default"],
+        "ARCH":    ${{ format('[{0}]', inputs.arch) }}
+      }
+    ]
+  REFS: >
+    {
+        "DEFAULT_BRANCH": ${{ format('"{0}"', inputs.default_branch) }},
+        "BRANCHES": ${{ format('"{0}"', inputs.branches) }},
+        "NUM_LATEST_TAGS": ${{ format('{0}', inputs.tag != 'latest' && 1 || 0) }}
+    }
+
+# -------------------------------------------------------------------------------------------------
+# Custom name of workflow
+# -------------------------------------------------------------------------------------------------
+run-name: ${{ inputs.run-name }} 🚀
+
+
+jobs:
+  # -----------------------------------------------------------------------------------------------
+  # (0/6) Compute environment
+  # -----------------------------------------------------------------------------------------------
+  set-env:
+    name: Compute env
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ env.VERSIONS }}
+      refs: ${{ env.REFS }}
+    steps:
+      - name: Print inputs passed to the reusable workflow
+        id: variables
+        if: false
+        run: echo
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (1/6) Determine parameter settings
+  # -----------------------------------------------------------------------------------------------
+  params:
+    name: Compute params
+    needs: [set-env]
+    uses: ./.github/workflows/params-manual.yml
+    with:
+      versions: ${{ needs.set-env.outputs.versions }}
+      refs: ${{ needs.set-env.outputs.refs }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (2/6) Configure Build and Deploy Matrices
+  # -----------------------------------------------------------------------------------------------
+  configure:
+    needs: [params]
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-configure.yml@master
+    with:
+      enabled: ${{ inputs.enabled }}
+      can_deploy: ${{ inputs.deploy }}
+      versions: ${{ needs.params.outputs.versions }}
+      refs: ${{ needs.params.outputs.refs }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (3/6) Build & Test base
+  # -----------------------------------------------------------------------------------------------
+  build-base:
+    name: Build base
+    needs:
+      - configure
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: false
+      upload_artifact: true
+      pull_base_image: true
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: base
+      stage_prev: ''
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    if: ${{ inputs.stage == 'all' }}
+
+  build-base-manual:
+    name: (Stage) Build & Test base
+    needs:
+      - configure
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: true
+      upload_artifact: true
+      pull_base_image: true
+      push_image: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: base
+      stage_prev: ''
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'base' }}
+
+  test-base:
+    name: Test base
+    needs:
+      - configure
+      - build-base
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-test.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: base
+    if: ${{ inputs.stage == 'all' }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (4/6) Build & Test work
+  # -----------------------------------------------------------------------------------------------
+  build-work:
+    name: Build work
+    needs:
+      - configure
+      - build-base
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: false
+      upload_artifact: true
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: work
+      stage_prev: base
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    if: ${{ inputs.stage == 'all' }}
+
+  build-work-manual:
+    name: (Stage) Build & Test work
+    needs:
+      - configure
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: true
+      upload_artifact: true
+      pull_base_image: true
+      push_image: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: work
+      stage_prev: ''
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'work' }}
+
+  test-work:
+    name: Test work
+    needs:
+      - configure
+      - build-work
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-test.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: work
+    if: ${{ inputs.stage == 'all' }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (5/6) Push images
+  # -----------------------------------------------------------------------------------------------
+  push-base:
+    name: Push base image
+    needs:
+      - configure
+      - test-base
+      - test-work
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-image.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: base
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'all' }}
+
+  push-work:
+    name: Push work image
+    needs:
+      - configure
+      - test-base
+      - test-work
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-image.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_build }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: work
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'all' }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (6/6) Push Manifests
+  # -----------------------------------------------------------------------------------------------
+  manifest-base:
+    name: Push base Manifest
+    needs:
+      - configure
+      - push-base
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-manifest.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_deploy }}
+      versions: ${{ needs.configure.outputs.versions }}
+      stage: base
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'all' }}
+
+  manifest-base-manual:
+    name: (Stage) Push base Manifest
+    needs:
+      - configure
+      - build-base-manual
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-manifest.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_deploy }}
+      versions: ${{ needs.configure.outputs.versions }}
+      stage: base
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'base' }}
+
+  manifest-work:
+    name: Push work Manifest
+    needs:
+      - configure
+      - push-work
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-manifest.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_deploy }}
+      versions: ${{ needs.configure.outputs.versions }}
+      stage: work
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'all' }}
+
+  manifest-work-manual:
+    name: (Stage) Push work Manifest
+    needs:
+      - configure
+      - build-work-manual
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-manifest.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ needs.configure.outputs.matrix_deploy }}
+      versions: ${{ needs.configure.outputs.versions }}
+      stage: work
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'work' }}

@@ -1,5 +1,34 @@
 # Changelog
 
+## [Wave 9] — CI/CD canonical pattern alignment
+
+Replaced 3 ad-hoc GitHub Actions workflows (build-base.yml, build-work.yml,
+lint.yml) with the canonical Devilbox community pattern ported from
+docker-php-fpm and trimmed from 5 stages to 2 stages (base→work):
+
+- `.github/workflows/action.yml` — main orchestrator (6-phase pipeline:
+  params → configure → build/test base → build/test work → push → manifest)
+- `.github/workflows/action-manual.yml` — workflow_dispatch with stage/version/arch inputs
+- `.github/workflows/action-schedule_tags.yml` — nightly tag builds (cron 18:00 Sun/Tue/Thu)
+- `.github/workflows/action-schedule_master.yml` — nightly master builds (cron 18:00 Mon/Wed/Fri)
+- `.github/workflows/params{,-manual,-nightly_tags,-nightly_master}.yml` — matrix providers
+- `.github/workflows/release-drafter.yml` — drafts release notes on push to master
+- `.github/workflows/linting.yml` — PR lint (Makefile-driven)
+- `.github/workflows/generator.yml` — verifies committed Dockerfiles match generator output
+- `.github/workflows/repository.yml` — label sync via micnncim/action-label-syncer@v1
+
+All build/test/push/manifest logic delegated to
+`devilbox-community/github-actions/.github/workflows/docker-multistage-*.yml@master`
+reusable workflows (matches docker-php-fpm + docker-nginx-stable convention).
+
+Required repository secrets:
+- DOCKERHUB_USERNAME, DOCKERHUB_PASSWORD (for image push on master/tag/release-*)
+- GITHUB_TOKEN (auto-provided, used by release-drafter + label syncer)
+
+New .github metadata:
+- release-drafter.yml (config), labels.yml, dependabot.yml, FUNDING.yml
+- ISSUE_TEMPLATE/{bug_report,feature_request,config}.yml
+
 ## [Wave 8] — 2026-06-01
 
 - Added 4 new tools (openclaw, pi-coding-agent, gemini, multica CLI).
