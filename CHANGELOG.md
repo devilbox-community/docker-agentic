@@ -1,5 +1,57 @@
 # Changelog
 
+## [Wave 9.3] — convert bats test suite to plain bash (docker-php-fpm style)
+
+Replaced the 7 `tests/*.bats` files (28 `@test` blocks) with a plain bash
+suite that mirrors `docker-php-fpm/tests/`: a top-level `tests/test.sh`
+runner discovers numbered `NN-*.sh` scripts under per-stage directories
+(`static/`, `base/`, `work/`) and executes them sequentially using helpers
+from `tests/.lib.sh` (`run`, `run_fail`, `print_h_main`, `print_h_sub`,
+`assert_eq`, `assert_grep`, `assert_symlink`, `assert_not_exists`,
+`assert_contains`). Removes the `bats-core` dependency from the contributor
+loop.
+
+- `tests/.lib.sh`: new — ports the colored `run` / `run_fail` helpers from
+  docker-php-fpm and adds static-assertion helpers needed for repository
+  content checks.
+- `tests/test.sh`: new — dual-mode runner. Zero args runs `tests/static/`
+  only (used by `make test`). Five args (`<image> <arch> <version>
+  <flavour> <tag>`) match the docker-php-fpm signature and reserve
+  `tests/base/` + `tests/work/` for future container-integration scripts;
+  both directories are stubbed empty today so CI workflows can be wired
+  before any docker-run tests exist.
+- `tests/static/01-browser-helper.sh`: ports `test_browser_helper.bats`
+  (FIFO + helper installation + production path assertion).
+- `tests/static/02-dockerfile-render.sh`: ports
+  `test_dockerfile_render.bats` + `test_tool_install_rendering.bats`.
+  **Fixes a stale assertion**: previously asserted `FROM ubuntu:24.04` on
+  the work Dockerfile, which has been wrong since Wave 9.2 (work now
+  `FROM devilboxcommunity/agentic:<release>-base AS work`). The bats
+  version had been silently failing for one commit; the bash port asserts
+  the correct contract.
+- `tests/static/03-generator-idempotent.sh`: ports `test_generator.bats`.
+- `tests/static/04-makefile.sh`: ports `test_makefile.bats`. Replaces the
+  `head -1 | …` pipelines with capture-then-slice to avoid SIGPIPE under
+  `set -o pipefail`.
+- `tests/static/05-defaults-yml.sh`: extracts the `_defaults.yml`
+  parser/count assertions out of `test_toggle.bats` into a focused file.
+- `tests/static/06-toggle.sh`: ports the remaining 10 toggle behaviour
+  tests from `test_toggle.bats` (defaults, ENABLE, DISABLE, collision,
+  idempotency, real-file protection, env normalisation).
+- `tests/static/07-entrypoint-order.sh`: ports the protected-COPY +
+  entrypoint-ordering assertions out of `test_toggle.bats`.
+- `tests/static/08-tool-contracts.sh`: ports `test_tool_contracts.bats`
+  (per-tool options.yml / install.yml / README.md contract checks).
+- `Makefile`: `test-integration` recipe now runs `bash tests/test.sh`
+  instead of `bats tests/`. Removes the implicit bats dependency.
+- `tests/test_*.bats` (7 files): deleted.
+
+Verification: `bash tests/test.sh` exits 0 with all 8 static suites
+green. Coverage parity with the prior bats suite is preserved, plus the
+previously-undetected Wave 9.2 regression on the work Dockerfile FROM
+assertion is now caught.
+
+
 ## [Wave 9.2] — work stage now FROM base image (php-fpm pattern)
 
 Refactored `Dockerfile-work` to layer on top of the published base image
