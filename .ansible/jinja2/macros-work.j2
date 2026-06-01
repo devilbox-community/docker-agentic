@@ -15,6 +15,10 @@
     {{- fn.get_val(name, items, 'post', '') -}}
 {%- endmacro -%}
 
+{%- macro get_binary(name, items) -%}
+    {{- fn.get_val(name, items, 'binary', name) -}}
+{%- endmacro -%}
+
 {%- macro get_build_dep(name, items) -%}
     {{- fn.get_list(name, items, 'build_dep') -}}
 {%- endmacro -%}

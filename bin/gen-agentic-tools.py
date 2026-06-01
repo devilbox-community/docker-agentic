@@ -29,7 +29,31 @@ def get_el_by_name(items: List[Dict[str, Any]], name: str) -> Dict[str, Any]:
 def load_yaml(path: str) -> Dict[str, Any]:
     """Load YAML file and return its dict."""
     if yaml is None:
-        raise RuntimeError("PyYAML is required when agentic_tools contains tool definitions")
+        data: Dict[str, Any] = {}
+        current_list = None
+        with open(path, "r", encoding="utf8") as fp:
+            for raw_line in fp:
+                line = raw_line.strip()
+                if not line or line == "---" or line.startswith("#"):
+                    continue
+                if line.startswith("-") and current_list:
+                    data[current_list].append(line[1:].strip())
+                    continue
+                current_list = None
+                if ":" not in line:
+                    continue
+                key, value = line.split(":", 1)
+                key = key.strip()
+                value = value.strip()
+                if value in ("", "[]"):
+                    data[key] = [] if value == "[]" else ""
+                    if value == "":
+                        current_list = key
+                elif value.startswith("[") and value.endswith("]"):
+                    data[key] = [item.strip().strip('"\'') for item in value[1:-1].split(",") if item.strip()]
+                else:
+                    data[key] = value.strip('"\'')
+        return data
     with open(path, "r", encoding="utf8") as fp:
         data = yaml.safe_load(fp)
         return data or {}
@@ -43,6 +67,9 @@ def load_yaml_raw(path: str, indent: int = 0) -> str:
             if line in ("---\n", "---\r\n", "\n", "\r\n"):
                 continue
             if line.startswith("#"):
+                continue
+            if line.strip() in ("pre:", "post:", "version:"):
+                lines.append(" " * indent + line.rstrip() + " ''\n")
                 continue
             lines.append(" " * indent + line)
     return "".join(lines)

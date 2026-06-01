@@ -14,7 +14,7 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PATH=/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
+    PATH=/root/.local/bin:/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -119,28 +119,34 @@ RUN set -eux \
     && rm -rf /var/lib/apt/lists/*
 {%- endif %}
 
-{% for tool in agentic_tools_enabled -%}
-    {%- if fn.get_type(tool, agentic_tools_available) in ['npm', 'pip', 'curl', 'custom'] -%}
+{% for tool in agentic_tools_enabled %}
+{% if fn.get_type(tool, agentic_tools_available) in ['npm', 'pip', 'curl', 'custom'] %}
 # -------------------- {{ tool }} --------------------
-RUN set -eux \
-        {%- if fn.get_pre(tool, agentic_tools_available) | length %}
-    && {{ fn.get_pre(tool, agentic_tools_available) | indent(4) }} \
-        {%- endif %}
-        {%- if fn.get_type(tool, agentic_tools_available) == 'npm' %}
-    && npm install -g {{ fn.tool_npm_get_package(tool, agentic_tools_available) }}{{ fn.tool_npm_get_version(tool, agentic_tools_available) }} \
-        {%- elif fn.get_type(tool, agentic_tools_available) == 'pip' %}
-    && pipx install {{ fn.tool_pip_get_package(tool, agentic_tools_available) }}{{ fn.tool_pip_get_version(tool, agentic_tools_available) }} \
-        {%- elif fn.get_type(tool, agentic_tools_available) == 'curl' %}
-    && {{ fn.tool_curl_get_command(tool, agentic_tools_available) | indent(4) }} \
-        {%- elif fn.get_type(tool, agentic_tools_available) == 'custom' %}
-    && {{ fn.tool_custom_get_command(tool, agentic_tools_available) | indent(4) }} \
-        {%- endif %}
-        {%- if fn.get_post(tool, agentic_tools_available) | length %}
-    && {{ fn.get_post(tool, agentic_tools_available) | indent(4) }} \
-        {%- endif %}
-    && true
-    {%- endif %}
-{%- endfor %}
+RUN set -eux; \
+{% set pre = fn.get_pre(tool, agentic_tools_available) | trim %}
+{% set post = fn.get_post(tool, agentic_tools_available) | trim %}
+{% if pre in ['None', 'none', 'null', '~'] %}{% set pre = '' %}{% endif %}
+{% if post in ['None', 'none', 'null', '~'] %}{% set post = '' %}{% endif %}
+{% if pre | length %}
+    {{ fn.get_pre(tool, agentic_tools_available) }}; \
+{% endif %}
+{% if fn.get_type(tool, agentic_tools_available) == 'npm' %}
+    npm install -g {{ fn.tool_npm_get_package(tool, agentic_tools_available) }}{{ fn.tool_npm_get_version(tool, agentic_tools_available) }}; \
+{% elif fn.get_type(tool, agentic_tools_available) == 'pip' %}
+    pipx install {{ fn.tool_pip_get_package(tool, agentic_tools_available) }}{{ fn.tool_pip_get_version(tool, agentic_tools_available) }}; \
+    ln -sf /root/.local/bin/{{ fn.get_binary(tool, agentic_tools_available) }} /usr/local/bin/{{ fn.get_binary(tool, agentic_tools_available) }}; \
+    chmod -R a+rx /root; \
+{% elif fn.get_type(tool, agentic_tools_available) == 'curl' %}
+    {{ fn.tool_curl_get_command(tool, agentic_tools_available) }}; \
+{% elif fn.get_type(tool, agentic_tools_available) == 'custom' %}
+    {{ fn.tool_custom_get_command(tool, agentic_tools_available) }}; \
+{% endif %}
+{% if post | length %}
+    {{ fn.get_post(tool, agentic_tools_available) }}; \
+{% endif %}
+    true
+{% endif %}
+{% endfor %}
 
 USER devilbox
 WORKDIR /shared/httpd
