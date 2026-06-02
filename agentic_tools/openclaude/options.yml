@@ -1,0 +1,9 @@
+---
+
+name: OpenClaude
+
+default_enabled: false
+
+exclude: []
+
+depends: []
