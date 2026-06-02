@@ -101,16 +101,12 @@ COPY bin/docker-entrypoint.sh /docker-entrypoint.sh
 COPY data/startup.1.d/ /startup.1.d/
 COPY data/startup.2.d/ /startup.2.d/
 COPY data/motd /etc/motd
-COPY data/agentic_tools/_defaults.yml /opt/agentic-tools/_defaults.yml
-COPY data/startup.1.d/10-oauth-helper.sh /opt/agentic-tools/_entrypoint.d/10-oauth-helper.sh
-COPY data/startup.1.d/20-agentic-toggle.sh /opt/agentic-tools/_entrypoint.d/20-agentic-toggle.sh
 
 RUN set -eux \
     && chmod +x /docker-entrypoint.sh \
     && find /startup.1.d /startup.2.d -type f -name '*.sh' -exec chmod +x {} + \
     && chown -R "${MY_USER}:${MY_GROUP}" /startup.1.d /startup.2.d \
     && install -d -o "${MY_USER}" -g "${MY_GROUP}" /opt/agentic-tools \
-    && chown "${MY_USER}:${MY_GROUP}" /opt/agentic-tools/_defaults.yml \
     && chmod +x /opt/agentic-tools/_entrypoint.d/*.sh \
     && chown -R "${MY_USER}:${MY_GROUP}" /opt/agentic-tools/_entrypoint.d \
     && install -d -m 1777 /var/lock

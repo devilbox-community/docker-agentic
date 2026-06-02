@@ -13,9 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover - empty Wave 1 does not require 
 
 SCRIPT_PATH = str(os.path.dirname(os.path.realpath(__file__)))
 REPOSITORY_PATH = str(os.path.dirname(SCRIPT_PATH))
-AGENTIC_TOOL_PATH = os.environ.get(
-    "AGENTIC_TOOL_PATH", str(os.path.join(REPOSITORY_PATH, "Dockerfiles", "base", "data", "agentic_tools"))
-)
+AGENTIC_TOOL_PATH = os.environ.get("AGENTIC_TOOL_PATH", str(os.path.join(REPOSITORY_PATH, "agentic_tools")))
 GROUP_VARS_PATH = str(os.path.join(REPOSITORY_PATH, ".ansible", "group_vars", "all"))
 
 
