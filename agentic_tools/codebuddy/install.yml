@@ -1,0 +1,24 @@
+---
+
+check: codebuddy --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/codebuddy/bin;
+    tmpdir="$(mktemp -d)";
+    trap 'rm -rf "$tmpdir"' EXIT;
+    arch="$(uname -m)";
+    case "$arch" in x86_64) arch_tag=x64 ;; aarch64) arch_tag=arm64 ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+    url="https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.101.0/codebuddy-code_Linux_${arch_tag}.tar.gz";
+    curl -fsSL --proto '=https' --tlsv1.2 -o "$tmpdir/codebuddy.tar.gz" "$url";
+    tar -xzf "$tmpdir/codebuddy.tar.gz" -C "$tmpdir";
+    find "$tmpdir" -type f -name codebuddy -perm -111 -exec install -D -m 0755 {} /opt/agentic-tools/codebuddy/bin/codebuddy \; -quit;
+    test -x /opt/agentic-tools/codebuddy/bin/codebuddy
+  package: "@tencent-ai/codebuddy-code"
+  binary: codebuddy
+  version: 2.101.0
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

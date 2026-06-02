@@ -1,0 +1,9 @@
+---
+
+name: CodeBuddy
+
+default_enabled: false
+
+exclude: []
+
+depends: []
