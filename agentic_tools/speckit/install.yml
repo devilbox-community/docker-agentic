@@ -1,0 +1,21 @@
+---
+
+check: specify --version 2>&1 | grep -qiE '(spec|[0-9]+\.[0-9]+)'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/speckit/bin;
+    python3 -m venv /opt/agentic-tools/speckit/venv;
+    /opt/agentic-tools/speckit/venv/bin/python -m pip install --upgrade pip setuptools wheel;
+    /opt/agentic-tools/speckit/venv/bin/python -m pip install git+https://github.com/github/spec-kit.git@v0.9.0;
+    ln -sfn ../venv/bin/specify /opt/agentic-tools/speckit/bin/specify;
+    test -x /opt/agentic-tools/speckit/bin/specify
+  package: specify-cli
+  binary: specify
+  version: 0.9.0
+  build_dep:
+    - python3-venv
+  run_dep: []
+  pre:
+  post:
