@@ -7,6 +7,24 @@
 # rather than re-implementing it inline.
 FROM devilboxcommunity/agentic:latest-base AS work
 
+###
+### Labels
+###
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+#LABEL "org.opencontainers.image.created"=""
+#LABEL "org.opencontainers.image.version"=""
+#LABEL "org.opencontainers.image.revision"=""
+LABEL "maintainer"="Toan Nguyen <nntoan@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <nntoan@nntoan.com>"
+LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.vendor"="Devilbox Community"
+LABEL "org.opencontainers.image.licenses"="MIT"
+LABEL "org.opencontainers.image.ref.name"="work"
+LABEL "org.opencontainers.image.title"="Devilbox Agentic (work)"
+LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLIs (work stage)"
+
 USER root
 
 RUN set -eux \
