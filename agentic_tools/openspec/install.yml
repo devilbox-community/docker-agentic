@@ -1,0 +1,18 @@
+---
+
+check: openspec --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/openspec/bin;
+    npm install --location=global --prefix /opt/agentic-tools/openspec @fission-ai/openspec@1.4.0;
+    test -x /opt/agentic-tools/openspec/bin/openspec;
+    chmod +x /opt/agentic-tools/openspec/bin/openspec
+  package: "@fission-ai/openspec"
+  binary: openspec
+  version: 1.4.0
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

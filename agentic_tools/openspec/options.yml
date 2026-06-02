@@ -1,0 +1,9 @@
+---
+
+name: OpenSpec
+
+default_enabled: true
+
+exclude: []
+
+depends: []
