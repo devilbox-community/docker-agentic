@@ -1,0 +1,26 @@
+---
+
+check: droid --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/factory/bin;
+    version="0.137.1";
+    arch="$(uname -m)";
+    case "$arch" in x86_64) arch_dir="linux/amd64" ;; aarch64) arch_dir="linux/arm64" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+    base_url="https://downloads.factory.ai/factory-cli/releases/${version}/${arch_dir}";
+    curl -fsSL -o /opt/agentic-tools/factory/bin/droid "$base_url/droid";
+    curl -fsSL -o /tmp/droid.sha256 "$base_url/droid.sha256";
+    cd /opt/agentic-tools/factory/bin;
+    sha256sum -c /tmp/droid.sha256;
+    chmod +x /opt/agentic-tools/factory/bin/droid;
+    rm -f /tmp/droid.sha256
+  package: "@factory/cli"
+  binary: droid
+  version: 0.137.1
+  build_dep: []
+  run_dep:
+    - xdg-utils
+  pre:
+  post:

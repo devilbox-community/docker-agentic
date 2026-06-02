@@ -1,0 +1,9 @@
+---
+
+name: Factory Droid
+
+default_enabled: false
+
+exclude: []
+
+depends: []
