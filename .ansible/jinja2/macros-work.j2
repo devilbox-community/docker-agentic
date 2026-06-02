@@ -56,3 +56,45 @@
 {%- macro tool_custom_get_command(name, items) -%}
     {{- fn.get_val_by_type(name, items, 'command', 'custom', '') -}}
 {%- endmacro -%}
+
+{%- macro install_tool_layers(tools, items) -%}
+{% for tool in tools %}
+{% if get_type(tool, items) in ['npm', 'pip', 'curl', 'custom'] %}
+# -------------------- {{ tool }} --------------------
+RUN set -eux; \
+{% set pre = get_pre(tool, items) | trim %}
+{% set post = get_post(tool, items) | trim %}
+{% if pre in ['None', 'none', 'null', '~'] %}{% set pre = '' %}{% endif %}
+{% if post in ['None', 'none', 'null', '~'] %}{% set post = '' %}{% endif %}
+{% if pre | length %}
+    {{ get_pre(tool, items) }}; \
+{% endif %}
+{% if get_type(tool, items) == 'npm' %}
+    npm install -g {{ tool_npm_get_package(tool, items) }}{{ tool_npm_get_version(tool, items) }}; \
+    mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+    install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+{% if tool == 'continue' %}
+    ln -sf /opt/nvm/current/bin/cn /opt/agentic-tools/continue/bin/continue; \
+    printf '%s\n' 'enable -n continue 2>/dev/null || true' > /etc/profile.d/continue-cli.sh; \
+{% endif %}
+{% elif get_type(tool, items) == 'pip' %}
+    pipx install {{ tool_pip_get_package(tool, items) }}{{ tool_pip_get_version(tool, items) }}; \
+    mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+    install -m 0755 /root/.local/bin/{{ get_binary(tool, items) }} /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+    chmod -R a+rx /root; \
+{% elif get_type(tool, items) == 'curl' %}
+    {{ tool_curl_get_command(tool, items) | trim | replace('\n', ' ') }}; \
+{% elif get_type(tool, items) == 'custom' %}
+    {{ tool_custom_get_command(tool, items) | trim | replace('\n', ' ') }}; \
+{% endif %}
+    mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+    if [ ! -x /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }} ] && command -v {{ get_binary(tool, items) }} >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+    fi; \
+{% if post | length %}
+    {{ get_post(tool, items) }}; \
+{% endif %}
+    true
+{% endif %}
+{% endfor %}
+{%- endmacro -%}

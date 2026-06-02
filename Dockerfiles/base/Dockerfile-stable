@@ -97,6 +97,196 @@ RUN set -eux \
         | su - "${MY_USER}" -c "sh -s -- -y --profile minimal" \
     && su - "${MY_USER}" -c "rustup --version && cargo --version"
 
+
+
+# -------------------- aider --------------------
+RUN set -eux; \
+    pipx install aider-chat; \
+    mkdir -p /opt/agentic-tools/aider/bin; \
+    install -m 0755 /root/.local/bin/aider /opt/agentic-tools/aider/bin/aider; \
+    chmod -R a+rx /root; \
+    mkdir -p /opt/agentic-tools/aider/bin; \
+    if [ ! -x /opt/agentic-tools/aider/bin/aider ] && command -v aider >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v aider)" /opt/agentic-tools/aider/bin/aider; \
+    fi; \
+    true
+# -------------------- claude-code --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/claude-code/bin && if curl -fsI https://claude.ai/install.sh >/dev/null 2>&1; then curl -fsSL https://claude.ai/install.sh | bash && for p in $(command -v claude 2>/dev/null) /root/.local/bin/claude /root/.claude/local/claude /usr/local/bin/claude; do [ -x "$p" ] && install -D -m 0755 "$p" /opt/agentic-tools/claude-code/bin/claude && break; done; else echo 'WARN: claude-code primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+    mkdir -p /opt/agentic-tools/claude-code/bin; \
+    if [ ! -x /opt/agentic-tools/claude-code/bin/claude ] && command -v claude >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v claude)" /opt/agentic-tools/claude-code/bin/claude; \
+    fi; \
+    true
+# -------------------- cline --------------------
+RUN set -eux; \
+    curl --version >/dev/null && printf '%s\n' '#!/bin/sh' 'echo "Use Cline in VS Code; this container persists config at /home/devilbox/.config/cline"' > /usr/local/bin/cline && chmod +x /usr/local/bin/cline; \
+    mkdir -p /opt/agentic-tools/cline/bin; \
+    if [ ! -x /opt/agentic-tools/cline/bin/cline ] && command -v cline >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v cline)" /opt/agentic-tools/cline/bin/cline; \
+    fi; \
+    true
+# -------------------- codewhale --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/codewhale/bin /opt/agentic-tools/codewhale/lib; if curl -fsI https://github.com/Hmbown/CodeWhale >/dev/null 2>&1; then git clone --depth 1 https://github.com/Hmbown/CodeWhale /opt/agentic-tools/codewhale/src && python3 -m pip install --break-system-packages --target /opt/agentic-tools/codewhale/lib /opt/agentic-tools/codewhale/src; printf '%s\n' '#!/usr/bin/env bash' 'PYTHONPATH=/opt/agentic-tools/codewhale/lib exec python3 -m codewhale "$@"' > /opt/agentic-tools/codewhale/bin/codewhale && chmod +x /opt/agentic-tools/codewhale/bin/codewhale; else echo "WARNING codewhale upstream unavailable"; printf '%s\n' '#!/bin/sh' 'echo codewhale upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/codewhale/bin/codewhale && chmod +x /opt/agentic-tools/codewhale/bin/codewhale; fi; \
+    mkdir -p /opt/agentic-tools/codewhale/bin; \
+    if [ ! -x /opt/agentic-tools/codewhale/bin/codewhale ] && command -v codewhale >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v codewhale)" /opt/agentic-tools/codewhale/bin/codewhale; \
+    fi; \
+    true
+# -------------------- codex --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/codex/bin && if curl -fsI https://chatgpt.com/codex/install.sh >/dev/null 2>&1; then curl -fsSL https://chatgpt.com/codex/install.sh | sh && for p in $(command -v codex 2>/dev/null) /root/.codex/bin/codex /root/.local/bin/codex /usr/local/bin/codex; do [ -x "$p" ] && install -D -m 0755 "$p" /opt/agentic-tools/codex/bin/codex && break; done; else echo 'WARN: codex primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+    mkdir -p /opt/agentic-tools/codex/bin; \
+    if [ ! -x /opt/agentic-tools/codex/bin/codex ] && command -v codex >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v codex)" /opt/agentic-tools/codex/bin/codex; \
+    fi; \
+    true
+# -------------------- continue --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/continue/bin && if curl -fsI https://continue.dev/install.sh >/dev/null 2>&1; then curl -fsSL https://continue.dev/install.sh | bash && for p in $(command -v continue 2>/dev/null) /root/.continue/bin/continue /root/.local/bin/continue /usr/local/bin/continue; do [ -x "$p" ] && install -D -m 0755 "$p" /opt/agentic-tools/continue/bin/continue && break; done; else echo 'WARN: continue primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+    mkdir -p /opt/agentic-tools/continue/bin; \
+    if [ ! -x /opt/agentic-tools/continue/bin/continue ] && command -v continue >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v continue)" /opt/agentic-tools/continue/bin/continue; \
+    fi; \
+    true
+# -------------------- crush --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/crush/bin && if curl -fsI https://github.com/charmbracelet/crush/releases/latest/download/checksums.txt >/dev/null 2>&1; then VER=$(curl -fsSL https://api.github.com/repos/charmbracelet/crush/releases/latest | grep -m1 tag_name | cut -d'"' -f4) && VER=${VER#v} && curl -fsSL -o /tmp/crush.deb https://github.com/charmbracelet/crush/releases/latest/download/crush_${VER}_amd64.deb && dpkg -i /tmp/crush.deb && install -D -m 0755 /usr/bin/crush /opt/agentic-tools/crush/bin/crush && rm -f /tmp/crush.deb; else echo 'WARN: crush primary probe failed; trying go fallback' >&2; (command -v go >/dev/null 2>&1 && GOPATH=/opt/agentic-tools/crush GOBIN=/opt/agentic-tools/crush/bin go install github.com/charmbracelet/crush/cmd/crush@latest) || echo 'WARN: crush go fallback unavailable' >&2; fi; \
+    mkdir -p /opt/agentic-tools/crush/bin; \
+    if [ ! -x /opt/agentic-tools/crush/bin/crush ] && command -v crush >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v crush)" /opt/agentic-tools/crush/bin/crush; \
+    fi; \
+    mkdir -p /home/devilbox/.config/crush; \
+    true
+# -------------------- cursor --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/cursor/bin && if curl -fsI https://cursor.com/install >/dev/null 2>&1; then curl -fsS https://cursor.com/install | bash || true; src="$(command -v cursor-agent 2>/dev/null || find /root /home /usr/local/bin /opt -maxdepth 6 -name cursor-agent -type f -print -quit 2>/dev/null || true)"; if [ -n "$src" ] && [ "$src" != /opt/agentic-tools/cursor/bin/cursor-agent ]; then install -m 0755 "$src" /opt/agentic-tools/cursor/bin/cursor-agent; fi; if [ ! -x /opt/agentic-tools/cursor/bin/cursor-agent ]; then echo "WARNING cursor install produced no cursor-agent binary"; printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/cursor/bin/cursor-agent; chmod +x /opt/agentic-tools/cursor/bin/cursor-agent; fi; else echo "WARNING cursor upstream unavailable"; printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/cursor/bin/cursor-agent; chmod +x /opt/agentic-tools/cursor/bin/cursor-agent; fi; \
+    mkdir -p /opt/agentic-tools/cursor/bin; \
+    if [ ! -x /opt/agentic-tools/cursor/bin/cursor-agent ] && command -v cursor-agent >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v cursor-agent)" /opt/agentic-tools/cursor/bin/cursor-agent; \
+    fi; \
+    true
+# -------------------- gemini --------------------
+RUN set -eux; \
+    set -e; mkdir -p /opt/agentic-tools/gemini/bin; \ if npm view @google/gemini-cli version >/dev/null 2>&1; then \   npm install -g --prefix /opt/agentic-tools/gemini @google/gemini-cli || true; \ fi; \ if [ ! -x /opt/agentic-tools/gemini/bin/gemini ]; then \   printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: @google/gemini-cli not installed at build time (npm view failed); stub installed."' 'exit 0' > /opt/agentic-tools/gemini/bin/gemini; \   chmod +x /opt/agentic-tools/gemini/bin/gemini; \ fi; \
+    mkdir -p /opt/agentic-tools/gemini/bin; \
+    if [ ! -x /opt/agentic-tools/gemini/bin/gemini ] && command -v gemini >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v gemini)" /opt/agentic-tools/gemini/bin/gemini; \
+    fi; \
+    true
+# -------------------- gh-copilot --------------------
+RUN set -eux; \
+    if ! command -v gh >/dev/null 2>&1; then curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*; fi; \
+    gh copilot --help >/dev/null; \
+    mkdir -p /opt/agentic-tools/gh-copilot/bin; \
+    if [ ! -x /opt/agentic-tools/gh-copilot/bin/gh ] && command -v gh >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v gh)" /opt/agentic-tools/gh-copilot/bin/gh; \
+    fi; \
+    true
+# -------------------- goose --------------------
+RUN set -eux; \
+    curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash && mv /root/.local/bin/goose /usr/local/bin/goose; \
+    mkdir -p /opt/agentic-tools/goose/bin; \
+    if [ ! -x /opt/agentic-tools/goose/bin/goose ] && command -v goose >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v goose)" /opt/agentic-tools/goose/bin/goose; \
+    fi; \
+    true
+# -------------------- hermes --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/hermes/bin; if curl -fsI https://hermes-agent.nousresearch.com/install.sh >/dev/null 2>&1; then curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash || true; src="$(command -v hermes 2>/dev/null || find /root /home /usr/local/bin /opt -maxdepth 6 -name hermes -type f -print -quit 2>/dev/null || true)"; if [ -n "$src" ] && [ "$src" != /opt/agentic-tools/hermes/bin/hermes ]; then install -m 0755 "$src" /opt/agentic-tools/hermes/bin/hermes; fi; if [ ! -x /opt/agentic-tools/hermes/bin/hermes ]; then echo "WARNING hermes install produced no hermes binary"; printf '%s\n' '#!/bin/sh' 'echo hermes upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/hermes/bin/hermes; chmod +x /opt/agentic-tools/hermes/bin/hermes; fi; else echo "WARNING hermes upstream unavailable"; printf '%s\n' '#!/bin/sh' 'echo hermes upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/hermes/bin/hermes; chmod +x /opt/agentic-tools/hermes/bin/hermes; fi; \
+    mkdir -p /opt/agentic-tools/hermes/bin; \
+    if [ ! -x /opt/agentic-tools/hermes/bin/hermes ] && command -v hermes >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v hermes)" /opt/agentic-tools/hermes/bin/hermes; \
+    fi; \
+    true
+# -------------------- llm --------------------
+RUN set -eux; \
+    pipx install llm; \
+    mkdir -p /opt/agentic-tools/llm/bin; \
+    install -m 0755 /root/.local/bin/llm /opt/agentic-tools/llm/bin/llm; \
+    chmod -R a+rx /root; \
+    mkdir -p /opt/agentic-tools/llm/bin; \
+    if [ ! -x /opt/agentic-tools/llm/bin/llm ] && command -v llm >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v llm)" /opt/agentic-tools/llm/bin/llm; \
+    fi; \
+    mkdir -p /home/devilbox/.config/io.datasette.llm; \
+    true
+# -------------------- multica --------------------
+RUN set -eux; \
+    set -e; mkdir -p /opt/agentic-tools/multica/bin; \ MULTICA_SRC="${MULTICA_SRC:-/workspace/multica}"; \ if [ -d "$MULTICA_SRC/apps/cli" ]; then \   cd "$MULTICA_SRC/apps/cli" && go build -o /opt/agentic-tools/multica/bin/multica ./cmd/multica; \ else \   echo "WARNING: multica sibling repo not bind-mounted at $MULTICA_SRC; skipping CLI build (Wave 8F1 compose stack still optional)"; \   printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: multica CLI not built — sibling repo was absent at image build time."' 'exit 0' > /opt/agentic-tools/multica/bin/multica; \   chmod +x /opt/agentic-tools/multica/bin/multica; \ fi; \
+    mkdir -p /opt/agentic-tools/multica/bin; \
+    if [ ! -x /opt/agentic-tools/multica/bin/multica ] && command -v multica >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v multica)" /opt/agentic-tools/multica/bin/multica; \
+    fi; \
+    true
+# -------------------- openclaw --------------------
+RUN set -eux; \
+    set -e; mkdir -p /opt/agentic-tools/openclaw/bin; \ if curl -fsI --max-time 10 https://openclaw.ai/install.sh >/dev/null 2>&1; then \   curl -fsSL https://openclaw.ai/install.sh | bash || true; \   for c in /root/.local/bin/openclaw /usr/local/bin/openclaw /root/.openclaw/bin/openclaw; do \     if [ -x "$c" ] && [ ! -e /opt/agentic-tools/openclaw/bin/openclaw ]; then mv "$c" /opt/agentic-tools/openclaw/bin/openclaw; fi; \   done; \ fi; \ if [ ! -x /opt/agentic-tools/openclaw/bin/openclaw ]; then \   printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: openclaw install.sh unreachable at build time; stub installed."' 'exit 0' > /opt/agentic-tools/openclaw/bin/openclaw; \   chmod +x /opt/agentic-tools/openclaw/bin/openclaw; \ fi; \
+    mkdir -p /opt/agentic-tools/openclaw/bin; \
+    if [ ! -x /opt/agentic-tools/openclaw/bin/openclaw ] && command -v openclaw >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v openclaw)" /opt/agentic-tools/openclaw/bin/openclaw; \
+    fi; \
+    true
+# -------------------- opencode --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/opencode/bin && if curl -fsI https://opencode.ai/install >/dev/null 2>&1; then curl -fsSL https://opencode.ai/install | bash && for p in $(command -v opencode 2>/dev/null) /root/.opencode/bin/opencode /root/.local/bin/opencode /usr/local/bin/opencode; do [ -x "$p" ] && install -D -m 0755 "$p" /opt/agentic-tools/opencode/bin/opencode && break; done; else echo 'WARN: opencode primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+    mkdir -p /opt/agentic-tools/opencode/bin; \
+    if [ ! -x /opt/agentic-tools/opencode/bin/opencode ] && command -v opencode >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v opencode)" /opt/agentic-tools/opencode/bin/opencode; \
+    fi; \
+    true
+# -------------------- pi-coding-agent --------------------
+RUN set -eux; \
+    set -e; mkdir -p /opt/agentic-tools/pi-coding-agent/bin; \ if curl -fsI --max-time 10 https://pi.dev/install.sh >/dev/null 2>&1; then \   curl -fsSL https://pi.dev/install.sh | sh || true; \   for c in /usr/local/bin/pi /root/.local/bin/pi /usr/lib/node_modules/@earendil-works/pi-coding-agent/bin/pi /usr/local/lib/node_modules/@earendil-works/pi-coding-agent/bin/pi; do \     if [ -x "$c" ] && [ ! -e /opt/agentic-tools/pi-coding-agent/bin/pi ]; then mv "$c" /opt/agentic-tools/pi-coding-agent/bin/pi; fi; \   done; \ fi; \ if [ ! -x /opt/agentic-tools/pi-coding-agent/bin/pi ]; then \   printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: pi.dev install.sh unreachable at build time; stub installed."' 'exit 0' > /opt/agentic-tools/pi-coding-agent/bin/pi; \   chmod +x /opt/agentic-tools/pi-coding-agent/bin/pi; \ fi; \
+    mkdir -p /opt/agentic-tools/pi-coding-agent/bin; \
+    if [ ! -x /opt/agentic-tools/pi-coding-agent/bin/pi ] && command -v pi >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v pi)" /opt/agentic-tools/pi-coding-agent/bin/pi; \
+    fi; \
+    true
+# -------------------- qwen-code --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/qwen-code/bin /tmp/qwen-x && if curl -fsI https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz >/dev/null 2>&1; then curl -fsSL https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz | tar xz -C /tmp/qwen-x && BIN=$(find /tmp/qwen-x -type f -name 'qwen-code' | head -n1) && [ -n "$BIN" ] && install -D -m 0755 "$BIN" /opt/agentic-tools/qwen-code/bin/qwen-code && rm -rf /tmp/qwen-x; else echo 'WARN: qwen-code primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+    mkdir -p /opt/agentic-tools/qwen-code/bin; \
+    if [ ! -x /opt/agentic-tools/qwen-code/bin/qwen-code ] && command -v qwen-code >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v qwen-code)" /opt/agentic-tools/qwen-code/bin/qwen-code; \
+    fi; \
+    true
+# -------------------- reasonix --------------------
+RUN set -eux; \
+    mkdir -p /opt/agentic-tools/reasonix/bin /opt/agentic-tools/reasonix/lib; if curl -fsI https://github.com/esengine/DeepSeek-Reasonix >/dev/null 2>&1; then git clone --depth 1 https://github.com/esengine/DeepSeek-Reasonix /opt/agentic-tools/reasonix/src && python3 -m pip install --break-system-packages --target /opt/agentic-tools/reasonix/lib /opt/agentic-tools/reasonix/src; printf '%s\n' '#!/usr/bin/env bash' 'PYTHONPATH=/opt/agentic-tools/reasonix/lib exec python3 -m reasonix "$@"' > /opt/agentic-tools/reasonix/bin/reasonix && chmod +x /opt/agentic-tools/reasonix/bin/reasonix; else echo "WARNING reasonix upstream unavailable"; printf '%s\n' '#!/bin/sh' 'echo reasonix upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/reasonix/bin/reasonix && chmod +x /opt/agentic-tools/reasonix/bin/reasonix; fi; \
+    mkdir -p /opt/agentic-tools/reasonix/bin; \
+    if [ ! -x /opt/agentic-tools/reasonix/bin/reasonix ] && command -v reasonix >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v reasonix)" /opt/agentic-tools/reasonix/bin/reasonix; \
+    fi; \
+    true
+
+
+# ----- Default-enabled tools (symlinked to /usr/local/bin/ at build time): -----
+# ----- Installed-only tools (binary exists, no PATH symlink by default): -----
+# aider  (aider)
+# claude-code  (claude)
+# cline  (cline)
+# codewhale  (codewhale)
+# codex  (codex)
+# continue  (continue)
+# crush  (crush)
+# cursor  (cursor-agent)
+# gemini  (gemini)
+# gh-copilot  (gh)
+# goose  (goose)
+# hermes  (hermes)
+# llm  (llm)
+# multica  (multica)
+# openclaw  (openclaw)
+# opencode  (opencode)
+# pi-coding-agent  (pi)
+# qwen-code  (qwen-code)
+# reasonix  (reasonix)
+
+RUN set -eux \
+    && true
+
 COPY bin/docker-entrypoint.sh /docker-entrypoint.sh
 COPY data/startup.1.d/ /startup.1.d/
 COPY data/startup.2.d/ /startup.2.d/
