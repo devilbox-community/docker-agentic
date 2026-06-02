@@ -13,7 +13,7 @@ cd "${ROOT}"
 print_h_main "agentic toggle script behaviour"
 
 SCRIPT="${ROOT}/Dockerfiles/base/data/startup.1.d/20-agentic-toggle.sh"
-DEFAULTS="${ROOT}/agentic_tools/_defaults.yml"
+DEFAULTS="${ROOT}/Dockerfiles/base/data/agentic_tools/_defaults.yml"
 
 TMPDIR_T="$(mktemp -d)"
 trap 'rm -rf "${TMPDIR_T}"' EXIT

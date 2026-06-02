@@ -87,7 +87,7 @@ def continuation(command: str) -> str:
 
 def render_tool_installs() -> str:
     chunks = []
-    for tool_dir in sorted((root / "agentic_tools").iterdir()):
+    for tool_dir in sorted((root / "Dockerfiles" / "base" / "data" / "agentic_tools").iterdir()):
         if not tool_dir.is_dir():
             continue
         install = parse_simple_yaml(tool_dir / "install.yml")

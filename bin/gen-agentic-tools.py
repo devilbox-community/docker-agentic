@@ -7,13 +7,15 @@ from collections import OrderedDict
 from typing import Any, Dict, List
 
 try:
-    import yaml
+    import yaml  # type: ignore[import]
 except ModuleNotFoundError:  # pragma: no cover - empty Wave 1 does not require YAML parsing
     yaml = None
 
 SCRIPT_PATH = str(os.path.dirname(os.path.realpath(__file__)))
 REPOSITORY_PATH = str(os.path.dirname(SCRIPT_PATH))
-AGENTIC_TOOL_PATH = os.environ.get("AGENTIC_TOOL_PATH", str(os.path.join(REPOSITORY_PATH, "agentic_tools")))
+AGENTIC_TOOL_PATH = os.environ.get(
+    "AGENTIC_TOOL_PATH", str(os.path.join(REPOSITORY_PATH, "Dockerfiles", "base", "data", "agentic_tools"))
+)
 GROUP_VARS_PATH = str(os.path.join(REPOSITORY_PATH, ".ansible", "group_vars", "all"))
 
 
@@ -172,7 +174,7 @@ def print_help() -> None:
     print("Usage:", os.path.basename(__file__), "[options] [AGENTIC-TOOL]...")
     print("      ", os.path.basename(__file__), "-h, --help")
     print()
-    print("Generate .ansible/group_vars/all/work.yml from agentic_tools/.")
+    print("Generate .ansible/group_vars/all/work.yml from Dockerfiles/base/data/agentic_tools/.")
     print("Optional arguments:")
     print("    -i          Ignore dependent tools.")
 

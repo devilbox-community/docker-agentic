@@ -46,7 +46,7 @@ Wave 8 introduces a runtime toggle via environment variables to manage tool avai
 - `AGENTIC_TOOLS_ENABLE=aider,crush` — Enables these additional tools at startup.
 - `AGENTIC_TOOLS_DISABLE=gh-copilot` — Disables a tool that is enabled by default.
 
-Toggle state is evaluated at the container entrypoint. See `agentic_tools/_defaults.yml` for the canonical list of defaults.
+Toggle state is evaluated at the container entrypoint. See `Dockerfiles/base/data/agentic_tools/_defaults.yml` for the canonical list of defaults.
 
 ## Build
 

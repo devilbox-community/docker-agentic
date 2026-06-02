@@ -2,7 +2,7 @@
 # Read by data/startup.1.d/20-agentic-toggle.sh at runtime.
 #
 # This file is the SINGLE SOURCE OF TRUTH for runtime defaults. The per-tool
-# `enabled_by_default` field in agentic_tools/<slug>/options.yml is kept for
+# `enabled_by_default` field in Dockerfiles/base/data/agentic_tools/<slug>/options.yml is kept for
 # documentation purposes only; this file overrides it.
 #
 # To change which tools are enabled out-of-the-box, edit only this list and

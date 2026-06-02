@@ -101,7 +101,7 @@ COPY bin/docker-entrypoint.sh /docker-entrypoint.sh
 COPY data/startup.1.d/ /startup.1.d/
 COPY data/startup.2.d/ /startup.2.d/
 COPY data/motd /etc/motd
-COPY agentic_tools/_defaults.yml /opt/agentic-tools/_defaults.yml
+COPY data/agentic_tools/_defaults.yml /opt/agentic-tools/_defaults.yml
 COPY data/startup.1.d/10-oauth-helper.sh /opt/agentic-tools/_entrypoint.d/10-oauth-helper.sh
 COPY data/startup.1.d/20-agentic-toggle.sh /opt/agentic-tools/_entrypoint.d/20-agentic-toggle.sh
 

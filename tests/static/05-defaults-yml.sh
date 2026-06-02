@@ -12,7 +12,7 @@ cd "${ROOT}"
 
 print_h_main "_defaults.yml is the authoritative default-on list"
 
-DEFAULTS="${ROOT}/agentic_tools/_defaults.yml"
+DEFAULTS="${ROOT}/Dockerfiles/base/data/agentic_tools/_defaults.yml"
 assert_file_exists "${DEFAULTS}"
 
 print_h_sub "parses to exactly the 11 expected default-ON slugs"

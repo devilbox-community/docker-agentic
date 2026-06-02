@@ -13,7 +13,7 @@ cd "${ROOT}"
 print_h_main "agentic tool contracts (options.yml / install.yml / README.md)"
 
 shopt -s nullglob
-tool_dirs=(agentic_tools/*/)
+tool_dirs=(Dockerfiles/base/data/agentic_tools/*/)
 shopt -u nullglob
 
 print_h_sub "at least 15 tool directories exist"
