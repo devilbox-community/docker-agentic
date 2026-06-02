@@ -1,0 +1,24 @@
+---
+
+check: kilo --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/kilocode/bin;
+    version="v7.3.21";
+    arch="$(uname -m)";
+    case "$arch" in x86_64) asset="kilo-linux-x64.tar.gz" ;; aarch64) asset="kilo-linux-arm64.tar.gz" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+    tmpdir="$(mktemp -d)";
+    trap 'rm -rf "$tmpdir"' EXIT;
+    curl -fsSL -o "$tmpdir/$asset" "https://github.com/Kilo-Org/kilocode/releases/download/${version}/${asset}";
+    tar -xzf "$tmpdir/$asset" -C "$tmpdir";
+    find "$tmpdir" -type f -name kilo -perm -111 -exec install -D -m 0755 {} /opt/agentic-tools/kilocode/bin/kilo \; -quit;
+    test -x /opt/agentic-tools/kilocode/bin/kilo
+  package: "@kilocode/cli"
+  binary: kilo
+  version: 7.3.21
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

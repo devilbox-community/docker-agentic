@@ -1,0 +1,9 @@
+---
+
+name: Kilo Code
+
+default_enabled: false
+
+exclude: []
+
+depends: []
