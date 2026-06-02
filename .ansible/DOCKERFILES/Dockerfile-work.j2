@@ -1,6 +1,5 @@
 # vi: ft=dockerfile
 {{ edit_comment_work }}
-{% import './jinja2/macros-work.j2' as fn %}
 
 # Work stage layers on top of the previously published base image
 # (devilboxcommunity/agentic:<release>-base). Matches the docker-php-fpm
@@ -9,71 +8,6 @@
 FROM {{ docker_user }}/{{ image_name }}:{{ release }}-base AS work
 
 USER root
-
-{% set build_deps = [] -%}
-{%- for tool in agentic_tools_enabled -%}
-    {%- for dep in fn.get_build_dep(tool, agentic_tools_available) | from_json -%}
-        {%- if dep -%}{{- build_deps.append(dep) -}}{%- endif -%}
-    {%- endfor -%}
-{%- endfor -%}
-{%- if build_deps %}
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-{% for build_dep in build_deps | unique | sort %}
-        {{ build_dep }} \
-{% endfor %}
-    && rm -rf /var/lib/apt/lists/*
-{%- endif %}
-
-{% set apt_tools = [] -%}
-{%- for tool in agentic_tools_enabled -%}
-    {%- if fn.get_type(tool, agentic_tools_available) == 'apt' -%}
-        {{- apt_tools.append(fn.tool_apt_get_package(tool, agentic_tools_available)) -}}
-    {%- endif -%}
-{%- endfor -%}
-{%- if apt_tools %}
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-{% for apt_tool in apt_tools | unique | sort %}
-        {{ apt_tool }} \
-{% endfor %}
-    && rm -rf /var/lib/apt/lists/*
-{%- endif %}
-
-{% for tool in agentic_tools_enabled %}
-{% if fn.get_type(tool, agentic_tools_available) in ['npm', 'pip', 'curl', 'custom'] %}
-# -------------------- {{ tool }} --------------------
-RUN set -eux; \
-{% set pre = fn.get_pre(tool, agentic_tools_available) | trim %}
-{% set post = fn.get_post(tool, agentic_tools_available) | trim %}
-{% if pre in ['None', 'none', 'null', '~'] %}{% set pre = '' %}{% endif %}
-{% if post in ['None', 'none', 'null', '~'] %}{% set post = '' %}{% endif %}
-{% if pre | length %}
-    {{ fn.get_pre(tool, agentic_tools_available) }}; \
-{% endif %}
-{% if fn.get_type(tool, agentic_tools_available) == 'npm' %}
-    npm install -g {{ fn.tool_npm_get_package(tool, agentic_tools_available) }}{{ fn.tool_npm_get_version(tool, agentic_tools_available) }}; \
-{% if tool == 'continue' %}
-    ln -sf /opt/nvm/current/bin/cn /usr/local/bin/continue; \
-    printf '%s\n' 'enable -n continue 2>/dev/null || true' > /etc/profile.d/continue-cli.sh; \
-{% endif %}
-{% elif fn.get_type(tool, agentic_tools_available) == 'pip' %}
-    pipx install {{ fn.tool_pip_get_package(tool, agentic_tools_available) }}{{ fn.tool_pip_get_version(tool, agentic_tools_available) }}; \
-    ln -sf /root/.local/bin/{{ fn.get_binary(tool, agentic_tools_available) }} /usr/local/bin/{{ fn.get_binary(tool, agentic_tools_available) }}; \
-    chmod -R a+rx /root; \
-{% elif fn.get_type(tool, agentic_tools_available) == 'curl' %}
-    {{ fn.tool_curl_get_command(tool, agentic_tools_available) }}; \
-{% elif fn.get_type(tool, agentic_tools_available) == 'custom' %}
-    {{ fn.tool_custom_get_command(tool, agentic_tools_available) }}; \
-{% endif %}
-{% if post | length %}
-    {{ fn.get_post(tool, agentic_tools_available) }}; \
-{% endif %}
-    true
-{% endif %}
-{% endfor %}
 
 USER devilbox
 WORKDIR /shared/httpd
