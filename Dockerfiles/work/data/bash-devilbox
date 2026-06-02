@@ -1,0 +1,57 @@
+# Bash Completion
+if ! shopt -oq posix; then
+	if [ -f /usr/share/bash-completion/bash_completion ]; then
+		. /usr/share/bash-completion/bash_completion
+	fi
+fi
+
+# Locale
+export LC_ALL=en_US.UTF-8
+
+# Aliases
+alias ls='ls -p --color=always --group-directories-first'
+alias l='ls -lp --color=always --group-directories-first'
+alias ll='ls -alp --color=always --group-directories-first'
+alias ..='cd ..'
+
+# Nice PS1
+_clr_usr='\[\e[0;31m\]'
+_clr_ver='\[\e[0;36m\]'
+_clr_dir='\[\e[0;34m\]'
+_clr_off='\[\e[0m\]'
+PS1_USR="$( whoami )"
+PS1="${_clr_usr}${PS1_USR}${_clr_off}@${_clr_ver}(agentic)${_clr_off} in ${_clr_dir}\w${_clr_off} \$ "
+
+
+# Show Intro
+echo
+echo "------------------------------------------------------------------------------------------"
+echo "                              _            _ _ _               "
+echo "                             | |          (_) | |              "
+echo "                           __| | _____   ___| | |__   _____  __"
+echo "                          / _\` |/ _ \\ \\ / / | | '_ \\ / _ \\ \\/ /"
+echo "                         | (_| |  __/\\ V /| | | |_) | (_) >  < "
+echo "                          \\__,_|\\___| \\_/ |_|_|_.__/ \\___/_/\\_\\"
+echo "                                                               "
+echo "                                  http://devilbox.org"
+echo "                            https://devilbox.readthedocs.io"
+echo
+echo
+echo
+echo "                                    Available Tools"
+echo "          https://devilbox.readthedocs.io/en/latest/readings/available-tools.html"
+echo
+echo "                         Agentic work container configuration"
+echo "               Static shell marker: agentic (no tool introspection)"
+echo
+echo
+echo
+echo "                    | Available Dirs   | Description                  |"
+echo "                    |------------------|------------------------------|"
+echo "                    | /shared/httpd    | Project base directory       |"
+echo "                    | /shared/backups  | Backup directory             |"
+echo "                    | /var/mail        | Email directory              |"
+echo "                    | /var/log         | Log file directory           |"
+echo
+echo "------------------------------------------------------------------------------------------"
+echo
