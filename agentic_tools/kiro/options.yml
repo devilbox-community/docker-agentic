@@ -1,0 +1,9 @@
+---
+
+name: Kiro CLI
+
+default_enabled: false
+
+exclude: []
+
+depends: []

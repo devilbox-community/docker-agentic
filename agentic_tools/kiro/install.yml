@@ -1,0 +1,23 @@
+---
+
+check: kiro-cli --version 2>&1 | grep -qiE '(kiro|[0-9]+\.[0-9]+)'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/kiro/bin;
+    tmpdir="$(mktemp -d)";
+    trap 'rm -rf "$tmpdir"' EXIT;
+    arch="$(uname -m)";
+    case "$arch" in x86_64) url="https://desktop-release.q.us-east-1.amazonaws.com/latest/kirocli-x86_64-linux.zip" ;; aarch64) url="https://desktop-release.q.us-east-1.amazonaws.com/latest/kirocli-aarch64-linux.zip" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+    curl --proto '=https' --tlsv1.2 -sSf "$url" -o "$tmpdir/kirocli.zip";
+    unzip -q "$tmpdir/kirocli.zip" -d "$tmpdir";
+    bash "$tmpdir/kirocli/install.sh" --no-confirm --path /opt/agentic-tools/kiro/bin;
+    test -x /opt/agentic-tools/kiro/bin/kiro-cli
+  package: kiro-cli
+  binary: kiro-cli
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:
