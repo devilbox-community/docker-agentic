@@ -25,29 +25,29 @@ agentic_tools:
   - reasonix
 
 # The following specifies which agentic tools are linked by default.
-agentic_tools_enabled_by_default: []
+agentic_tools_enabled_by_default:
+  - claude-code
+  - codewhale
+  - codex
+  - cursor
+  - gemini
+  - gh-copilot
+  - hermes
+  - openclaw
+  - opencode
+  - pi-coding-agent
+  - reasonix
 
 # The following specifies which agentic tools are installed but not linked by default.
 agentic_tools_installed_only:
   - aider
-  - claude-code
   - cline
-  - codewhale
-  - codex
   - continue
   - crush
-  - cursor
-  - gemini
-  - gh-copilot
   - goose
-  - hermes
   - llm
   - multica
-  - openclaw
-  - opencode
-  - pi-coding-agent
   - qwen-code
-  - reasonix
 
 # The following specifies how agentic tools are being installed.
 agentic_tools_available:

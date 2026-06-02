@@ -3,6 +3,8 @@
 # The name of the module
 name: claude-code
 
+default_enabled: true
+
 # Agentic image has no per-language axis; keep empty.
 exclude: []
 

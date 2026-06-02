@@ -3,6 +3,8 @@
 # The name of the module
 name: cline
 
+default_enabled: false
+
 # Exclude module build/installation
 exclude: []
 

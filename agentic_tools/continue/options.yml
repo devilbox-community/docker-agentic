@@ -3,6 +3,8 @@
 # The name of the module
 name: continue
 
+default_enabled: false
+
 # Exclude module build/installation
 exclude: []
 

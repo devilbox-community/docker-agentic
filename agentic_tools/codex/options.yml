@@ -2,6 +2,8 @@
 
 name: codex
 
+default_enabled: true
+
 exclude: []
 
 depends: []

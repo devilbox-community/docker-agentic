@@ -2,6 +2,8 @@
 
 name: opencode
 
+default_enabled: true
+
 exclude: []
 
 depends: []

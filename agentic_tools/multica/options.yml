@@ -3,6 +3,8 @@
 # The name of the module
 name: multica
 
+default_enabled: false
+
 # Default-toggle status for Wave 8D runtime symlinker.
 # multica is OFF by default — full compose stack lands in Wave 8F1 and requires
 # the sibling repo to be present at build time.

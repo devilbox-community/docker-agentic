@@ -263,28 +263,39 @@ RUN set -eux; \
 
 
 # ----- Default-enabled tools (symlinked to /usr/local/bin/ at build time): -----
-# ----- Installed-only tools (binary exists, no PATH symlink by default): -----
-# aider  (aider)
 # claude-code  (claude)
-# cline  (cline)
 # codewhale  (codewhale)
 # codex  (codex)
-# continue  (continue)
-# crush  (crush)
 # cursor  (cursor-agent)
 # gemini  (gemini)
 # gh-copilot  (gh)
-# goose  (goose)
 # hermes  (hermes)
-# llm  (llm)
-# multica  (multica)
 # openclaw  (openclaw)
 # opencode  (opencode)
 # pi-coding-agent  (pi)
-# qwen-code  (qwen-code)
 # reasonix  (reasonix)
+# ----- Installed-only tools (binary exists, no PATH symlink by default): -----
+# aider  (aider)
+# cline  (cline)
+# continue  (continue)
+# crush  (crush)
+# goose  (goose)
+# llm  (llm)
+# multica  (multica)
+# qwen-code  (qwen-code)
 
 RUN set -eux \
+    && ln -sfn /opt/agentic-tools/claude-code/bin/claude /usr/local/bin/claude \
+    && ln -sfn /opt/agentic-tools/codewhale/bin/codewhale /usr/local/bin/codewhale \
+    && ln -sfn /opt/agentic-tools/codex/bin/codex /usr/local/bin/codex \
+    && ln -sfn /opt/agentic-tools/cursor/bin/cursor-agent /usr/local/bin/cursor-agent \
+    && ln -sfn /opt/agentic-tools/gemini/bin/gemini /usr/local/bin/gemini \
+    && ln -sfn /opt/agentic-tools/gh-copilot/bin/gh /usr/local/bin/gh \
+    && ln -sfn /opt/agentic-tools/hermes/bin/hermes /usr/local/bin/hermes \
+    && ln -sfn /opt/agentic-tools/openclaw/bin/openclaw /usr/local/bin/openclaw \
+    && ln -sfn /opt/agentic-tools/opencode/bin/opencode /usr/local/bin/opencode \
+    && ln -sfn /opt/agentic-tools/pi-coding-agent/bin/pi /usr/local/bin/pi \
+    && ln -sfn /opt/agentic-tools/reasonix/bin/reasonix /usr/local/bin/reasonix \
     && true
 
 COPY bin/docker-entrypoint.sh /docker-entrypoint.sh

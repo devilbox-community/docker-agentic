@@ -2,6 +2,8 @@
 
 name: gh-copilot
 
+default_enabled: true
+
 exclude: []
 
 depends: []

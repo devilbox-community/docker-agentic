@@ -3,6 +3,8 @@
 # The name of the module
 name: cursor
 
+default_enabled: true
+
 # Exclude module build/installation
 exclude: []
 
