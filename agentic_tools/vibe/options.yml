@@ -1,0 +1,9 @@
+---
+
+name: Mistral Vibe
+
+default_enabled: false
+
+exclude: []
+
+depends: []
