@@ -7,22 +7,33 @@ agentic_tools:
   - aider
   - claude-code
   - cline
+  - codebuddy
   - codewhale
   - codex
   - continue
   - crush
   - cursor
+  - factory
   - gemini
   - gh-copilot
   - goose
   - hermes
+  - junie
+  - kilocode
+  - kimi
+  - kiro
   - llm
   - multica
+  - openclaude
   - openclaw
   - opencode
+  - openspec
   - pi-coding-agent
+  - qoder
   - qwen-code
   - reasonix
+  - speckit
+  - vibe
 
 # The following specifies which agentic tools are linked by default.
 agentic_tools_enabled_by_default:
@@ -35,19 +46,30 @@ agentic_tools_enabled_by_default:
   - hermes
   - openclaw
   - opencode
+  - openspec
   - pi-coding-agent
   - reasonix
+  - speckit
 
 # The following specifies which agentic tools are installed but not linked by default.
 agentic_tools_installed_only:
   - aider
   - cline
+  - codebuddy
   - continue
   - crush
+  - factory
   - goose
+  - junie
+  - kilocode
+  - kimi
+  - kiro
   - llm
   - multica
+  - openclaude
+  - qoder
   - qwen-code
+  - vibe
 
 # The following specifies how agentic tools are being installed.
 agentic_tools_available:
@@ -85,6 +107,29 @@ agentic_tools_available:
       package: cline
       binary: cline
       version: ''
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  codebuddy:
+    disabled: []
+    check: codebuddy --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/codebuddy/bin;
+        tmpdir="$(mktemp -d)";
+        trap 'rm -rf "$tmpdir"' EXIT;
+        arch="$(uname -m)";
+        case "$arch" in x86_64) arch_tag=x64 ;; aarch64) arch_tag=arm64 ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+        url="https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.101.0/codebuddy-code_Linux_${arch_tag}.tar.gz";
+        curl -fsSL --proto '=https' --tlsv1.2 -o "$tmpdir/codebuddy.tar.gz" "$url";
+        tar -xzf "$tmpdir/codebuddy.tar.gz" -C "$tmpdir";
+        find "$tmpdir" -type f -name codebuddy -perm -111 -exec install -D -m 0755 {} /opt/agentic-tools/codebuddy/bin/codebuddy \; -quit;
+        test -x /opt/agentic-tools/codebuddy/bin/codebuddy
+      package: "@tencent-ai/codebuddy-code"
+      binary: codebuddy
+      version: 2.101.0
       build_dep: []
       run_dep: []
       pre: ''
@@ -188,6 +233,31 @@ agentic_tools_available:
       run_dep: []
       pre: ''
       post: ''
+  factory:
+    disabled: []
+    check: droid --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/factory/bin;
+        version="0.137.1";
+        arch="$(uname -m)";
+        case "$arch" in x86_64) arch_dir="linux/amd64" ;; aarch64) arch_dir="linux/arm64" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+        base_url="https://downloads.factory.ai/factory-cli/releases/${version}/${arch_dir}";
+        curl -fsSL -o /opt/agentic-tools/factory/bin/droid "$base_url/droid";
+        curl -fsSL -o /tmp/droid.sha256 "$base_url/droid.sha256";
+        cd /opt/agentic-tools/factory/bin;
+        sha256sum -c /tmp/droid.sha256;
+        chmod +x /opt/agentic-tools/factory/bin/droid;
+        rm -f /tmp/droid.sha256
+      package: "@factory/cli"
+      binary: droid
+      version: 0.137.1
+      build_dep: []
+      run_dep:
+        - xdg-utils
+      pre: ''
+      post: ''
   gemini:
     disabled: []
     check: gemini --version 2>&1 | grep -qiE '(gemini|not yet|[0-9]+\.[0-9]+)'
@@ -272,6 +342,95 @@ agentic_tools_available:
       run_dep: []
       pre: ''
       post: ''
+  junie:
+    disabled: []
+    check: junie --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/junie/bin;
+        version="1831.31";
+        arch="$(uname -m)";
+        case "$arch" in x86_64) platform="linux-amd64"; sha="63074d074dfab2426306743e3fa8983d703cdc4f7b4257354aecbce66bc9b034" ;; aarch64) platform="linux-aarch64"; sha="7540130d9fe8d7343acb182fb3bad3aa09805e883f68b2a5ad6dcfe4c2792bb0" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+        tmpzip="/tmp/junie-${version}.zip";
+        url="https://github.com/JetBrains/junie/releases/download/${version}/junie-release-${version}-${platform}.zip";
+        curl -fSL -o "$tmpzip" "$url";
+        echo "${sha}  $tmpzip" | sha256sum -c -;
+        install_dir="/opt/agentic-tools/junie/data/versions/${version}";
+        mkdir -p "$install_dir";
+        unzip -q -o "$tmpzip" -d "$install_dir";
+        rm -f "$tmpzip";
+        ln -sfn "$install_dir/junie/bin/junie" /opt/agentic-tools/junie/bin/junie;
+        chmod +x /opt/agentic-tools/junie/bin/junie;
+        test -x /opt/agentic-tools/junie/bin/junie
+      package: junie
+      binary: junie
+      version: 1831.31
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  kilocode:
+    disabled: []
+    check: kilo --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/kilocode/bin;
+        version="v7.3.21";
+        arch="$(uname -m)";
+        case "$arch" in x86_64) asset="kilo-linux-x64.tar.gz" ;; aarch64) asset="kilo-linux-arm64.tar.gz" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+        tmpdir="$(mktemp -d)";
+        trap 'rm -rf "$tmpdir"' EXIT;
+        curl -fsSL -o "$tmpdir/$asset" "https://github.com/Kilo-Org/kilocode/releases/download/${version}/${asset}";
+        tar -xzf "$tmpdir/$asset" -C "$tmpdir";
+        find "$tmpdir" -type f -name kilo -perm -111 -exec install -D -m 0755 {} /opt/agentic-tools/kilocode/bin/kilo \; -quit;
+        test -x /opt/agentic-tools/kilocode/bin/kilo
+      package: "@kilocode/cli"
+      binary: kilo
+      version: 7.3.21
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  kimi:
+    disabled: []
+    check: kimi --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/kimi;
+        KIMI_INSTALL_DIR=/opt/agentic-tools/kimi KIMI_VERSION=1.46.0 KIMI_NO_MODIFY_PATH=1 curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash;
+        test -x /opt/agentic-tools/kimi/bin/kimi
+      package: "@moonshot-ai/kimi-code"
+      binary: kimi
+      version: 1.46.0
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  kiro:
+    disabled: []
+    check: kiro-cli --version 2>&1 | grep -qiE '(kiro|[0-9]+\.[0-9]+)'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/kiro/bin;
+        tmpdir="$(mktemp -d)";
+        trap 'rm -rf "$tmpdir"' EXIT;
+        arch="$(uname -m)";
+        case "$arch" in x86_64) url="https://desktop-release.q.us-east-1.amazonaws.com/latest/kirocli-x86_64-linux.zip" ;; aarch64) url="https://desktop-release.q.us-east-1.amazonaws.com/latest/kirocli-aarch64-linux.zip" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+        curl --proto '=https' --tlsv1.2 -sSf "$url" -o "$tmpdir/kirocli.zip";
+        unzip -q "$tmpdir/kirocli.zip" -d "$tmpdir";
+        bash "$tmpdir/kirocli/install.sh" --no-confirm --path /opt/agentic-tools/kiro/bin;
+        test -x /opt/agentic-tools/kiro/bin/kiro-cli
+      package: kiro-cli
+      binary: kiro-cli
+      version: ''
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
   llm:
     disabled: []
     check: llm --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
@@ -303,6 +462,24 @@ agentic_tools_available:
       binary: multica
       version: ''
       build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  openclaude:
+    disabled: []
+    check: openclaude --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/openclaude/bin;
+        npm install -g --prefix /opt/agentic-tools/openclaude @gitlawb/openclaude@0.16.1;
+        test -x /opt/agentic-tools/openclaude/bin/openclaude;
+        chmod +x /opt/agentic-tools/openclaude/bin/openclaude
+      package: "@gitlawb/openclaude"
+      binary: openclaude
+      version: 0.16.1
+      build_dep:
+        - ripgrep
       run_dep: []
       pre: ''
       post: ''
@@ -343,6 +520,23 @@ agentic_tools_available:
       run_dep: []
       pre: ''
       post: ''
+  openspec:
+    disabled: []
+    check: openspec --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/openspec/bin;
+        npm install --location=global --prefix /opt/agentic-tools/openspec @fission-ai/openspec@1.4.0;
+        test -x /opt/agentic-tools/openspec/bin/openspec;
+        chmod +x /opt/agentic-tools/openspec/bin/openspec
+      package: "@fission-ai/openspec"
+      binary: openspec
+      version: 1.4.0
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
   pi-coding-agent:
     disabled: []
     check: pi --version 2>&1 | grep -qiE '(pi|not yet)'
@@ -363,6 +557,29 @@ agentic_tools_available:
       package: "@earendil-works/pi-coding-agent"
       binary: pi
       version: ''
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  qoder:
+    disabled: []
+    check: qodercli --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/qoder/bin;
+        version="1.0.11";
+        arch="$(uname -m)";
+        case "$arch" in x86_64) file="qodercli-linux-x64.tar.gz" ;; aarch64) file="qodercli-linux-arm64.tar.gz" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac;
+        tmpdir="$(mktemp -d)";
+        trap 'rm -rf "$tmpdir"' EXIT;
+        curl -fsSL --retry 3 "https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/releases/${version}/${file}" -o "$tmpdir/$file";
+        tar -xzf "$tmpdir/$file" -C "$tmpdir";
+        find "$tmpdir" -type f -name qodercli -perm -111 -exec install -D -m 0755 {} /opt/agentic-tools/qoder/bin/qodercli \; -quit;
+        test -x /opt/agentic-tools/qoder/bin/qodercli
+      package: "@qoder-ai/qodercli"
+      binary: qodercli
+      version: 1.0.11
       build_dep: []
       run_dep: []
       pre: ''
@@ -403,6 +620,46 @@ agentic_tools_available:
       package: reasonix
       binary: reasonix
       version: ''
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  speckit:
+    disabled: []
+    check: specify --version 2>&1 | grep -qiE '(spec|[0-9]+\.[0-9]+)'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/speckit/bin;
+        python3 -m venv /opt/agentic-tools/speckit/venv;
+        /opt/agentic-tools/speckit/venv/bin/python -m pip install --upgrade pip setuptools wheel;
+        /opt/agentic-tools/speckit/venv/bin/python -m pip install git+https://github.com/github/spec-kit.git@v0.9.0;
+        ln -sfn ../venv/bin/specify /opt/agentic-tools/speckit/bin/specify;
+        test -x /opt/agentic-tools/speckit/bin/specify
+      package: specify-cli
+      binary: specify
+      version: 0.9.0
+      build_dep:
+        - python3-venv
+      run_dep: []
+      pre: ''
+      post: ''
+  vibe:
+    disabled: []
+    check: vibe --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/vibe/bin;
+        if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"; fi;
+        uv tool install mistral-vibe==2.13.0 --force;
+        uv_bin_dir="$(uv tool dir --bin)";
+        ln -sfn "$uv_bin_dir/vibe" /opt/agentic-tools/vibe/bin/vibe;
+        ln -sfn "$uv_bin_dir/vibe-acp" /opt/agentic-tools/vibe/bin/vibe-acp;
+        test -x /opt/agentic-tools/vibe/bin/vibe
+      package: mistral-vibe
+      binary: vibe
+      version: 2.13.0
       build_dep: []
       run_dep: []
       pre: ''
