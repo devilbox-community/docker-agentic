@@ -1,0 +1,9 @@
+---
+
+name: Kimi Code
+
+default_enabled: false
+
+exclude: []
+
+depends: []
