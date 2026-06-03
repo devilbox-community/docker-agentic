@@ -5,7 +5,7 @@ check: gh copilot --help 2>&1 | grep -qi copilot
 all:
   type: custom
   command: gh copilot --help >/dev/null
-  package: gh-copilot
+  package: copilot
   binary: gh
   version:
   build_dep: []

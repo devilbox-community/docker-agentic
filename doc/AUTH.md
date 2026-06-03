@@ -26,7 +26,7 @@ code in your terminal, and the bridge opens the URL in the host browser. You
 enter the code on the host browser, then the CLI writes tokens into its mounted
 `cfg/agentic-*` directory.
 
-Examples: `claude-code`, `gh-copilot`, `codex` when it chooses device auth.
+Examples: `claude-code`, `copilot`, `codex` when it chooses device auth.
 
 ### Callback flow
 
@@ -49,7 +49,7 @@ Example: `opencode auth login`.
 Some products authenticate only through a proprietary desktop IDE or extension.
 Run those on the host and treat the container command as a stub.
 
-Examples: Cursor desktop auth, Cline VS Code extension auth, Continue IDE auth.
+Examples: Cline VS Code extension auth and Continue IDE auth.
 
 ## Tool-specific authentication
 
@@ -80,9 +80,8 @@ The Hermes-Workspace UI is available at `http://localhost:3000`. Authentication 
 | `codewhale` | API key/env or upstream CLI | `cfg/agentic-codewhale/` | No bridge mapping yet; use documented upstream auth. |
 | `continue` | Host IDE-only/API keys | host Continue profile or shared env | Container CLI does not replace IDE login. |
 | `crush` | API key/env | `cfg/agentic-crush/` or shared env | No OAuth bridge mapping yet. |
-| `cursor` | Host IDE-only | host Cursor profile | Cursor auth is proprietary desktop-only; use host Cursor. |
 | `gemini` | API key env var | `cfg/agentic-shared/.env` | Uses `GEMINI_API_KEY`. |
-| `gh-copilot` | Device-code OAuth | `cfg/agentic-copilot/hosts.yml` | Requires Copilot-enabled GitHub account. |
+| `copilot` | Device-code OAuth | `cfg/agentic-copilot/` | Requires Copilot-enabled GitHub account. |
 | `goose` | API key/env or provider auth | `cfg/agentic-goose/` | Use provider env vars unless upstream CLI prints a bridgeable URL. |
 | `hermes` | API key/env | `cfg/agentic-hermes/` or shared env | Points to `http://localhost:3000` for Workspace UI. |
 | `llm` | API key/env | `cfg/agentic-llm/` and shared env | Use `llm keys set` or env vars; no browser flow by default. |

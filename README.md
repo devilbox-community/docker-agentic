@@ -15,7 +15,7 @@ Node.js is managed via nvm at `/opt/nvm` (default: LTS). Bun is available at `/u
 
 ## Bundled CLI tools
 
-19 tools are included. 11 tools are enabled by default (see `AGENTIC_TOOLS_ENABLE` below), while 8 are opt-in.
+29 tools are included. 12 tools are enabled by default (see `AGENTIC_TOOLS_ENABLE` below), while 17 are opt-in.
 
 | Name | Install type | Default | Auth method | Persistence path |
 |---|---|---|---|---|
@@ -26,9 +26,8 @@ Node.js is managed via nvm at `/opt/nvm` (default: LTS). Bun is available at `/u
 | codex | native bash | ON | device-code | `cfg/agentic-codex/` |
 | continue | native bash | OFF | host-ide | `cfg/agentic-continue/` |
 | crush | native bash | OFF | api-key | `cfg/agentic-crush/` |
-| cursor | native bash | ON | host-ide | `cfg/agentic-cursor/` |
 | gemini | npm | ON | api-key | `cfg/agentic-gemini/` |
-| gh-copilot | gh-extension | ON | device-code | `cfg/agentic-copilot/` |
+| copilot | native bash | ON | device-code | `cfg/agentic-copilot/` |
 | goose | native bash | OFF | api-key | `cfg/agentic-goose/` |
 | hermes | native bash | ON | api-key | `cfg/agentic-hermes/` |
 | llm | native bash | OFF | api-key | `cfg/agentic-llm/` |
@@ -41,10 +40,10 @@ Node.js is managed via nvm at `/opt/nvm` (default: LTS). Bun is available at `/u
 
 ## ENABLE/DISABLE toggle
 
-Wave 8 introduces a runtime toggle via environment variables to manage tool availability. 11 tools are enabled by default (claude-code, opencode, codex, cursor, codewhale, reasonix, hermes, openclaw, pi-coding-agent, gh-copilot, gemini).
+Runtime toggle environment variables manage tool availability. 12 tools are enabled by default (claude-code, codex, codewhale, copilot, gemini, hermes, openclaw, opencode, openspec, pi-coding-agent, reasonix, speckit).
 
 - `AGENTIC_TOOLS_ENABLE=aider,crush` — Enables these additional tools at startup.
-- `AGENTIC_TOOLS_DISABLE=gh-copilot` — Disables a tool that is enabled by default.
+- `AGENTIC_TOOLS_DISABLE=copilot` — Disables a tool that is enabled by default.
 
 Toggle state is evaluated at the container entrypoint. See `Dockerfiles/base/data/agentic_tools/_defaults.yml` for the canonical list of defaults.
 

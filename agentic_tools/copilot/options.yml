@@ -1,6 +1,6 @@
 ---
 
-name: gh-copilot
+name: copilot
 
 default_enabled: true
 

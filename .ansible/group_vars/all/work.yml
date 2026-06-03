@@ -11,11 +11,10 @@ agentic_tools:
   - codewhale
   - codex
   - continue
+  - copilot
   - crush
-  - cursor
   - factory
   - gemini
-  - gh-copilot
   - goose
   - hermes
   - junie
@@ -40,9 +39,8 @@ agentic_tools_enabled_by_default:
   - claude-code
   - codewhale
   - codex
-  - cursor
+  - copilot
   - gemini
-  - gh-copilot
   - hermes
   - openclaw
   - opencode
@@ -187,6 +185,20 @@ agentic_tools_available:
       run_dep: []
       pre: ''
       post: ''
+  copilot:
+    disabled: []
+    check: gh copilot --help 2>&1 | grep -qi copilot
+    all:
+      type: custom
+      command: gh copilot --help >/dev/null
+      package: copilot
+      binary: gh
+      version: ''
+      build_dep: []
+      run_dep:
+        - gh
+      pre: if ! command -v gh >/dev/null 2>&1; then curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*; fi
+      post: ''
   crush:
     disabled: []
     check: crush --version 2>&1 | grep -qiE '(crush|[0-9]+\.[0-9]+)'
@@ -200,39 +212,6 @@ agentic_tools_available:
       run_dep: []
       pre: ''
       post: mkdir -p /home/devilbox/.config/crush
-  cursor:
-    disabled: []
-    check: cursor-agent --version
-    all:
-      type: custom
-      command: >-
-        mkdir -p /opt/agentic-tools/cursor/bin
-        && if curl -fsI https://cursor.com/install >/dev/null 2>&1;
-        then curl -fsS https://cursor.com/install | bash || true;
-        src="$(command -v cursor-agent 2>/dev/null
-        || find /root /home /usr/local/bin /opt -maxdepth 6 -name cursor-agent -type f -print -quit 2>/dev/null
-        || true)";
-        if [ -n "$src" ] && [ "$src" != /opt/agentic-tools/cursor/bin/cursor-agent ];
-        then install -m 0755 "$src" /opt/agentic-tools/cursor/bin/cursor-agent;
-        fi;
-        if [ ! -x /opt/agentic-tools/cursor/bin/cursor-agent ];
-        then echo "WARNING cursor install produced no cursor-agent binary";
-        printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0'
-        > /opt/agentic-tools/cursor/bin/cursor-agent;
-        chmod +x /opt/agentic-tools/cursor/bin/cursor-agent;
-        fi;
-        else echo "WARNING cursor upstream unavailable";
-        printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0'
-        > /opt/agentic-tools/cursor/bin/cursor-agent;
-        chmod +x /opt/agentic-tools/cursor/bin/cursor-agent;
-        fi
-      package: cursor-agent
-      binary: cursor-agent
-      version: ''
-      build_dep: []
-      run_dep: []
-      pre: ''
-      post: ''
   factory:
     disabled: []
     check: droid --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
@@ -278,20 +257,6 @@ agentic_tools_available:
       build_dep: []
       run_dep: []
       pre: ''
-      post: ''
-  gh-copilot:
-    disabled: []
-    check: gh copilot --help 2>&1 | grep -qi copilot
-    all:
-      type: custom
-      command: gh copilot --help >/dev/null
-      package: gh-copilot
-      binary: gh
-      version: ''
-      build_dep: []
-      run_dep:
-        - gh
-      pre: if ! command -v gh >/dev/null 2>&1; then curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*; fi
       post: ''
   goose:
     disabled: []

@@ -10,8 +10,8 @@ FROM ubuntu:24.04 AS base
 #LABEL "org.opencontainers.image.created"=""
 #LABEL "org.opencontainers.image.version"=""
 #LABEL "org.opencontainers.image.revision"=""
-LABEL "maintainer"="Toan Nguyen <nntoan@nntoan.com>"
-LABEL "org.opencontainers.image.authors"="Toan Nguyen <nntoan@nntoan.com>"
+LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
 LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
 LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
 LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
@@ -182,6 +182,15 @@ RUN set -eux; \
         install -m 0755 "$(command -v continue)" /opt/agentic-tools/continue/bin/continue; \
     fi; \
     true
+# -------------------- copilot --------------------
+RUN set -eux; \
+    if ! command -v gh >/dev/null 2>&1; then curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*; fi; \
+    gh copilot --help >/dev/null; \
+    mkdir -p /opt/agentic-tools/copilot/bin; \
+    if [ ! -x /opt/agentic-tools/copilot/bin/gh ] && command -v gh >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v gh)" /opt/agentic-tools/copilot/bin/gh; \
+    fi; \
+    true
 # -------------------- crush --------------------
 RUN set -eux; \
     mkdir -p /opt/agentic-tools/crush/bin && if curl -fsI https://github.com/charmbracelet/crush/releases/latest/download/checksums.txt >/dev/null 2>&1; then VER=$(curl -fsSL https://api.github.com/repos/charmbracelet/crush/releases/latest | grep -m1 tag_name | cut -d'"' -f4) && VER=${VER#v} && curl -fsSL -o /tmp/crush.deb https://github.com/charmbracelet/crush/releases/latest/download/crush_${VER}_amd64.deb && dpkg -i /tmp/crush.deb && install -D -m 0755 /usr/bin/crush /opt/agentic-tools/crush/bin/crush && rm -f /tmp/crush.deb; else echo 'WARN: crush primary probe failed; trying go fallback' >&2; (command -v go >/dev/null 2>&1 && GOPATH=/opt/agentic-tools/crush GOBIN=/opt/agentic-tools/crush/bin go install github.com/charmbracelet/crush/cmd/crush@latest) || echo 'WARN: crush go fallback unavailable' >&2; fi; \
@@ -190,14 +199,6 @@ RUN set -eux; \
         install -m 0755 "$(command -v crush)" /opt/agentic-tools/crush/bin/crush; \
     fi; \
     mkdir -p /home/devilbox/.config/crush; \
-    true
-# -------------------- cursor --------------------
-RUN set -eux; \
-    mkdir -p /opt/agentic-tools/cursor/bin && if curl -fsI https://cursor.com/install >/dev/null 2>&1; then curl -fsS https://cursor.com/install | bash || true; src="$(command -v cursor-agent 2>/dev/null || find /root /home /usr/local/bin /opt -maxdepth 6 -name cursor-agent -type f -print -quit 2>/dev/null || true)"; if [ -n "$src" ] && [ "$src" != /opt/agentic-tools/cursor/bin/cursor-agent ]; then install -m 0755 "$src" /opt/agentic-tools/cursor/bin/cursor-agent; fi; if [ ! -x /opt/agentic-tools/cursor/bin/cursor-agent ]; then echo "WARNING cursor install produced no cursor-agent binary"; printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/cursor/bin/cursor-agent; chmod +x /opt/agentic-tools/cursor/bin/cursor-agent; fi; else echo "WARNING cursor upstream unavailable"; printf '%s\n' '#!/bin/sh' 'echo cursor-agent upstream unavailable at build time' 'exit 0' > /opt/agentic-tools/cursor/bin/cursor-agent; chmod +x /opt/agentic-tools/cursor/bin/cursor-agent; fi; \
-    mkdir -p /opt/agentic-tools/cursor/bin; \
-    if [ ! -x /opt/agentic-tools/cursor/bin/cursor-agent ] && command -v cursor-agent >/dev/null 2>&1; then \
-        install -m 0755 "$(command -v cursor-agent)" /opt/agentic-tools/cursor/bin/cursor-agent; \
-    fi; \
     true
 # -------------------- factory --------------------
 RUN set -eux; \
@@ -213,15 +214,6 @@ RUN set -eux; \
     mkdir -p /opt/agentic-tools/gemini/bin; \
     if [ ! -x /opt/agentic-tools/gemini/bin/gemini ] && command -v gemini >/dev/null 2>&1; then \
         install -m 0755 "$(command -v gemini)" /opt/agentic-tools/gemini/bin/gemini; \
-    fi; \
-    true
-# -------------------- gh-copilot --------------------
-RUN set -eux; \
-    if ! command -v gh >/dev/null 2>&1; then curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*; fi; \
-    gh copilot --help >/dev/null; \
-    mkdir -p /opt/agentic-tools/gh-copilot/bin; \
-    if [ ! -x /opt/agentic-tools/gh-copilot/bin/gh ] && command -v gh >/dev/null 2>&1; then \
-        install -m 0755 "$(command -v gh)" /opt/agentic-tools/gh-copilot/bin/gh; \
     fi; \
     true
 # -------------------- goose --------------------
@@ -378,9 +370,8 @@ RUN set -eux; \
 # claude-code  (claude)
 # codewhale  (codewhale)
 # codex  (codex)
-# cursor  (cursor-agent)
+# copilot  (gh)
 # gemini  (gemini)
-# gh-copilot  (gh)
 # hermes  (hermes)
 # openclaw  (openclaw)
 # opencode  (opencode)
@@ -411,9 +402,8 @@ RUN set -eux \
     && ln -sfn /opt/agentic-tools/claude-code/bin/claude /usr/local/bin/claude \
     && ln -sfn /opt/agentic-tools/codewhale/bin/codewhale /usr/local/bin/codewhale \
     && ln -sfn /opt/agentic-tools/codex/bin/codex /usr/local/bin/codex \
-    && ln -sfn /opt/agentic-tools/cursor/bin/cursor-agent /usr/local/bin/cursor-agent \
+    && ln -sfn /opt/agentic-tools/copilot/bin/gh /usr/local/bin/gh \
     && ln -sfn /opt/agentic-tools/gemini/bin/gemini /usr/local/bin/gemini \
-    && ln -sfn /opt/agentic-tools/gh-copilot/bin/gh /usr/local/bin/gh \
     && ln -sfn /opt/agentic-tools/hermes/bin/hermes /usr/local/bin/hermes \
     && ln -sfn /opt/agentic-tools/openclaw/bin/openclaw /usr/local/bin/openclaw \
     && ln -sfn /opt/agentic-tools/opencode/bin/opencode /usr/local/bin/opencode \
