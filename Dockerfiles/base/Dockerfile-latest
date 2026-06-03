@@ -423,7 +423,7 @@ RUN set -eux \
     && ln -sfn /opt/agentic-tools/speckit/bin/specify /usr/local/bin/specify \
     && true
 
-COPY bin/docker-entrypoint.sh /docker-entrypoint.sh
+COPY data/docker-entrypoint.sh /docker-entrypoint.sh
 COPY data/docker-entrypoint.d /docker-entrypoint.d
 COPY data/startup.1.d/ /startup.1.d/
 COPY data/startup.2.d/ /startup.2.d/
