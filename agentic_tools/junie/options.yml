@@ -1,9 +1,0 @@
----
-
-name: Junie
-
-default_enabled: false
-
-exclude: []
-
-depends: []

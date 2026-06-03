@@ -7,7 +7,7 @@ all:
   command: |
     mkdir -p /opt/agentic-tools/copilot/bin;
     PREFIX="${HOME}/.local" curl -fsSL https://gh.io/copilot-install | bash;
-    install -D -m 0755 "${HOME}/.local/bin/copilot" /opt/agentic-tools/copilot/bin/copilot;
+    install -D -m 0755 /usr/local/bin/copilot /opt/agentic-tools/copilot/bin/copilot;
     test -x /opt/agentic-tools/copilot/bin/copilot
   package: copilot
   binary: copilot

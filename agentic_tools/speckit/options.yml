@@ -1,9 +1,0 @@
----
-
-name: Spec Kit
-
-default_enabled: true
-
-exclude: []
-
-depends: []

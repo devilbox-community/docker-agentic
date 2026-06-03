@@ -1,9 +1,0 @@
----
-
-name: aider
-
-default_enabled: false
-
-exclude: []
-
-depends: []

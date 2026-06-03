@@ -310,10 +310,12 @@ def write_group_vars(tools: List[str]) -> None:
         fp.write("\n")
 
         # Installed-only tools
-        fp.write("# The following specifies which agentic tools are installed but not linked by default.\n")
-        fp.write("agentic_tools_installed_only:\n")
-        for tool in installed_only:
-            fp.write("  - " + tool + "\n")
+        if installed_only:
+            fp.write("agentic_tools_installed_only:\n")
+            for tool in installed_only:
+                fp.write("  - " + tool + "\n")
+        else:
+            fp.write("agentic_tools_installed_only: []\n")
         fp.write("\n")
 
         # Build defines tools
