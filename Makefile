@@ -211,14 +211,26 @@ generate: gen-dockerfiles
 .PHONY: gen-dockerfiles
 gen-dockerfiles:
 	@echo "################################################################################"
-	@echo "# Generating Agentic Tool vars"
+	@echo "# Generating Agentic Tools"
 	@echo "################################################################################"
-	./bin/gen-agentic-tools.py
+	./bin/gen-agentic-tools.py $(TOOLS)
 	@echo
 	@echo "################################################################################"
 	@echo "# Generating Dockerfiles"
 	@echo "################################################################################"
-	./bin/gen-dockerfiles.sh
+	docker run --rm \
+		$$(tty -s && echo "-it" || echo) \
+		-e USER=ansible \
+		-e MY_UID=$$(id -u) \
+		-e MY_GID=$$(id -g) \
+		-v ${PWD}:/data \
+		-w /data/.ansible \
+		cytopia/ansible:2.12-tools ansible-playbook generate.yml \
+			-e ansible_python_interpreter=/usr/bin/python3 \
+			-e docker_user=$(ORG_USER) \
+			-e \"{build_fail_fast: $(FAIL_FAST)}\" \
+			--forks 50 \
+			--diff $(ARGS)
 
 
 # -------------------------------------------------------------------------------------------------
