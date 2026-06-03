@@ -2,7 +2,7 @@
 {{ edit_comment_base }}
 {% import './jinja2/macros-work.j2' as fn %}
 
-FROM ubuntu:{{ ubuntu_version }} AS base
+FROM debian:{{ debian_version }} AS base
 
 ###
 ### Labels
@@ -32,7 +32,7 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PATH=/opt/nvm/current/bin:/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
+    PATH=/opt/nvm/current/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -111,11 +111,6 @@ RUN set -eux \
     && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
     && rm -rf /root/.bun \
     && bun --version
-
-RUN set -eux \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-        | su - "${MY_USER}" -c "sh -s -- -y --profile {{ rustup_profile }}" \
-    && su - "${MY_USER}" -c "rustup --version && cargo --version"
 
 {% set build_deps = [] -%}
 {%- for tool in agentic_tools -%}

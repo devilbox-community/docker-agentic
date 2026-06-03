@@ -6,7 +6,7 @@ all:
   type: custom
   command: |
     mkdir -p /opt/agentic-tools/vibe/bin;
-    if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"; fi;
+    if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$PATH"; fi;
     uv tool install mistral-vibe==2.13.0 --force;
     uv_bin_dir="$(uv tool dir --bin)";
     ln -sfn "$uv_bin_dir/vibe" /opt/agentic-tools/vibe/bin/vibe;

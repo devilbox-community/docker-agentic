@@ -1,7 +1,7 @@
 # vi: ft=dockerfile
 # Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-base.j2 instead.
 
-FROM ubuntu:24.04 AS base
+FROM debian:trixie-slim AS base
 
 ###
 ### Labels
@@ -31,7 +31,7 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PATH=/opt/nvm/current/bin:/home/devilbox/.cargo/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
+    PATH=/opt/nvm/current/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -110,11 +110,6 @@ RUN set -eux \
     && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
     && rm -rf /root/.bun \
     && bun --version
-
-RUN set -eux \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-        | su - "${MY_USER}" -c "sh -s -- -y --profile minimal" \
-    && su - "${MY_USER}" -c "rustup --version && cargo --version"
 
 RUN set -eux \
     && apt-get update \
@@ -359,7 +354,7 @@ RUN set -eux; \
     true
 # -------------------- vibe --------------------
 RUN set -eux; \
-    mkdir -p /opt/agentic-tools/vibe/bin; if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"; fi; uv tool install mistral-vibe==2.13.0 --force; uv_bin_dir="$(uv tool dir --bin)"; ln -sfn "$uv_bin_dir/vibe" /opt/agentic-tools/vibe/bin/vibe; ln -sfn "$uv_bin_dir/vibe-acp" /opt/agentic-tools/vibe/bin/vibe-acp; test -x /opt/agentic-tools/vibe/bin/vibe; \
+    mkdir -p /opt/agentic-tools/vibe/bin; if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$PATH"; fi; uv tool install mistral-vibe==2.13.0 --force; uv_bin_dir="$(uv tool dir --bin)"; ln -sfn "$uv_bin_dir/vibe" /opt/agentic-tools/vibe/bin/vibe; ln -sfn "$uv_bin_dir/vibe-acp" /opt/agentic-tools/vibe/bin/vibe-acp; test -x /opt/agentic-tools/vibe/bin/vibe; \
     mkdir -p /opt/agentic-tools/vibe/bin; \
     if [ ! -x /opt/agentic-tools/vibe/bin/vibe ] && command -v vibe >/dev/null 2>&1; then \
         install -m 0755 "$(command -v vibe)" /opt/agentic-tools/vibe/bin/vibe; \
