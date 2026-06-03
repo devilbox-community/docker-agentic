@@ -106,9 +106,9 @@ agentic_tools_available:
     check: cline --help 2>&1 | grep -iE 'cline' || (cline --help; false)
     all:
       type: npm
-      package: "@cline/cli"
+      package: "cline"
       binary: cline
-      version: 3.0.14
+      version: 3.0.15
       build_dep: []
       run_dep: []
       pre: ''

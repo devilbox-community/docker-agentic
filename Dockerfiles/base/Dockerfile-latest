@@ -178,7 +178,7 @@ RUN set -eux; \
     true
 # -------------------- cline --------------------
 RUN set -eux; \
-    npm install -g @cline/cli@3.0.14; \
+    npm install -g cline@3.0.15; \
     mkdir -p /opt/agentic-tools/cline/bin; \
     install -m 0755 "$(command -v cline)" /opt/agentic-tools/cline/bin/cline; \
     mkdir -p /opt/agentic-tools/cline/bin; \
