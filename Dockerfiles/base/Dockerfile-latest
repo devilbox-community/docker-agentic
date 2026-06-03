@@ -38,25 +38,67 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN set -eux \
     && apt-get update \
     && apt-get install -y --no-install-recommends --no-install-suggests \
-        bash \
-        build-essential \
         ca-certificates \
         curl \
-        git \
         gnupg \
+        wget \
+        lsb-release \
+        sudo \
+    && install -d -m 0755 /etc/apt/keyrings \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        | gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends --no-install-suggests \
+        bash \
+        bash-completion \
+        build-essential \
+        bzip2 \
+        cmake \
+        direnv \
+        dnsutils \
+        fd-find \
+        g++ \
+        gcc \
+        git \
+        gh \
+        htop \
+        iputils-ping \
         jq \
+        libffi-dev \
+        libssl-dev \
+        locales \
+        make \
+        nano \
+        netcat-openbsd \
         openssh-client \
         passwd \
-        python3 \
-        python3-pip \
         pipx \
+        pkg-config \
+        procps \
+        psmisc \
+        python3 \
+        python3-dev \
+        python3-pip \
+        python3-venv \
+        ripgrep \
         socat \
-        sudo \
         tini \
+        tmux \
+        tree \
         tzdata \
         unzip \
+        vim \
         xz-utils \
-    && rm -rf /var/lib/apt/lists/*
+        yq \
+        zip \
+    && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+    && locale-gen \
+    && curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 RUN set -eux \
     && case "${TARGETARCH:-amd64}" in \
