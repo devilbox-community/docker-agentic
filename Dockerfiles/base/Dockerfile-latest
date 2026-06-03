@@ -168,7 +168,7 @@ RUN set -eux; \
     true
 # -------------------- codex --------------------
 RUN set -eux; \
-    mkdir -p /opt/agentic-tools/codex/bin && if curl -fsI https://chatgpt.com/codex/install.sh >/dev/null 2>&1; then curl -fsSL https://chatgpt.com/codex/install.sh | sh && for p in $(command -v codex 2>/dev/null) /root/.codex/bin/codex /root/.local/bin/codex /usr/local/bin/codex; do [ -x "$p" ] && install -D -m 0755 "$p" /opt/agentic-tools/codex/bin/codex && break; done; else echo 'WARN: codex primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+    mkdir -p /opt/agentic-tools/codex/bin; curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh; install -D -m 0755 "${HOME}/.local/bin/codex" /opt/agentic-tools/codex/bin/codex; test -x /opt/agentic-tools/codex/bin/codex; \
     mkdir -p /opt/agentic-tools/codex/bin; \
     if [ ! -x /opt/agentic-tools/codex/bin/codex ] && command -v codex >/dev/null 2>&1; then \
         install -m 0755 "$(command -v codex)" /opt/agentic-tools/codex/bin/codex; \
