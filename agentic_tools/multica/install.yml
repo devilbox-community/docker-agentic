@@ -4,20 +4,23 @@ check: multica version 2>&1 | grep -qiE '(multica|not yet|[0-9]+\.[0-9]+)'
 
 all:
   type: custom
-  command: |
-    set -e; mkdir -p /opt/agentic-tools/multica/bin; \
-    MULTICA_SRC="${MULTICA_SRC:-/workspace/multica}"; \
-    if [ -d "$MULTICA_SRC/apps/cli" ]; then \
-      cd "$MULTICA_SRC/apps/cli" && go build -o /opt/agentic-tools/multica/bin/multica ./cmd/multica; \
-    else \
-      echo "WARNING: multica sibling repo not bind-mounted at $MULTICA_SRC; skipping CLI build (Wave 8F1 compose stack still optional)"; \
-      printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: multica CLI not built — sibling repo was absent at image build time."' 'exit 0' > /opt/agentic-tools/multica/bin/multica; \
-      chmod +x /opt/agentic-tools/multica/bin/multica; \
-    fi
+  pre: >-
+    TAG_VERSION="$(curl -sSL 'https://github.com/multica-ai/multica/releases/latest' | grep -Eo '/multica-ai/multica/releases/tag/[-.0-9v]+' | grep -Eo '[-.0-9v]+' | head -1)";
+    ARCH="$(uname -m)";
+    case "${ARCH}" in x86_64) ARCH_TAG="x64" ;; aarch64|arm64) ARCH_TAG="arm64" ;; *) echo "Unsupported architecture: ${ARCH}" >&2; exit 1 ;; esac;
+    ASSET="multica-cli-${TAG_VERSION#v}-linux-${ARCH_TAG}.tar.gz"
+  command: >-
+    mkdir -p /opt/agentic-tools/multica/bin;
+    tmpdir="$(mktemp -d)";
+    trap 'rm -rf "$tmpdir"' EXIT;
+    URL="https://github.com/multica-ai/multica/releases/download/${TAG_VERSION}/${ASSET}";
+    curl -fsSL --proto '=https' --tlsv1.2 -o "$tmpdir/multica.tar.gz" "${URL}";
+    tar -xzf "$tmpdir/multica.tar.gz" -C "$tmpdir";
+    find "$tmpdir" -type f -name multica -perm -111 -exec install -D -m 0755 {} /opt/agentic-tools/multica/bin/multica \; -quit;
+    test -x /opt/agentic-tools/multica/bin/multica
   package: multica
   binary: multica
   version:
   build_dep: []
   run_dep: []
-  pre:
   post:
