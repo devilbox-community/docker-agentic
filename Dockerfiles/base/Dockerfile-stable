@@ -333,10 +333,10 @@ RUN set -eux; \
     true
 # -------------------- qwen-code --------------------
 RUN set -eux; \
-    mkdir -p /opt/agentic-tools/qwen-code/bin /tmp/qwen-x && if curl -fsI https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz >/dev/null 2>&1; then curl -fsSL https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz | tar xz -C /tmp/qwen-x && BIN=$(find /tmp/qwen-x -type f -name 'qwen-code' | head -n1) && [ -n "$BIN" ] && install -D -m 0755 "$BIN" /opt/agentic-tools/qwen-code/bin/qwen-code && rm -rf /tmp/qwen-x; else echo 'WARN: qwen-code primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+    mkdir -p /opt/agentic-tools/qwen-code/bin; bash -c "$(curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh)" -s --source qwenchat; install -D -m 0755 "$(command -v qwen)" /opt/agentic-tools/qwen-code/bin/qwen; test -x /opt/agentic-tools/qwen-code/bin/qwen; \
     mkdir -p /opt/agentic-tools/qwen-code/bin; \
-    if [ ! -x /opt/agentic-tools/qwen-code/bin/qwen-code ] && command -v qwen-code >/dev/null 2>&1; then \
-        install -m 0755 "$(command -v qwen-code)" /opt/agentic-tools/qwen-code/bin/qwen-code; \
+    if [ ! -x /opt/agentic-tools/qwen-code/bin/qwen ] && command -v qwen >/dev/null 2>&1; then \
+        install -m 0755 "$(command -v qwen)" /opt/agentic-tools/qwen-code/bin/qwen; \
     fi; \
     true
 # -------------------- reasonix --------------------
@@ -394,7 +394,7 @@ RUN set -eux; \
 # multica  (multica)
 # openclaude  (openclaude)
 # qoder  (qodercli)
-# qwen-code  (qwen-code)
+# qwen-code  (qwen)
 # vibe  (vibe)
 
 RUN set -eux \

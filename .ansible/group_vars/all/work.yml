@@ -545,12 +545,16 @@ agentic_tools_available:
       post: ''
   qwen-code:
     disabled: []
-    check: qwen-code --version 2>&1 | grep -iE '[0-9]+\.[0-9]+' || (qwen-code --version; false)
+    check: qwen --version 2>&1 | grep -iE '[0-9]+\.[0-9]+' || (qwen --version; false)
     all:
       type: custom
-      command: "mkdir -p /opt/agentic-tools/qwen-code/bin /tmp/qwen-x && if curl -fsI https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz >/dev/null 2>&1; then curl -fsSL https://github.com/QwenLM/qwen-code/releases/latest/download/qwen-code-linux-x64.tar.gz | tar xz -C /tmp/qwen-x && BIN=$(find /tmp/qwen-x -type f -name 'qwen-code' | head -n1) && [ -n \"$BIN\" ] && install -D -m 0755 \"$BIN\" /opt/agentic-tools/qwen-code/bin/qwen-code && rm -rf /tmp/qwen-x; else echo 'WARN: qwen-code primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi"
+      command: |
+        mkdir -p /opt/agentic-tools/qwen-code/bin;
+        bash -c "$(curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen.sh)" -s --source qwenchat;
+        install -D -m 0755 "$(command -v qwen)" /opt/agentic-tools/qwen-code/bin/qwen;
+        test -x /opt/agentic-tools/qwen-code/bin/qwen
       package: qwen-code
-      binary: qwen-code
+      binary: qwen
       version: ''
       build_dep: []
       run_dep: []
