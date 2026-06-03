@@ -17,9 +17,8 @@ DEFAULT_ENABLED_TOOLS=(
 	"claude-code:claude"
 	"codewhale:codewhale"
 	"codex:codex"
-	"cursor:cursor-agent"
+	"copilot:copilot"
 	"gemini:gemini"
-	"gh-copilot:gh"
 	"hermes:hermes"
 	"openclaw:openclaw"
 	"opencode:opencode"
@@ -41,4 +40,4 @@ for pair in "${DEFAULT_ENABLED_TOOLS[@]}"; do
 	esac
 done
 
-pass "All 13 default-enabled tools resolve under /usr/local/bin"
+pass "All 12 default-enabled tools resolve under /usr/local/bin"

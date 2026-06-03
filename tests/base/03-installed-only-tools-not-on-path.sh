@@ -29,7 +29,7 @@ INSTALLED_ONLY_TOOLS=(
 	"multica:multica"
 	"openclaude:openclaude"
 	"qoder:qodercli"
-	"qwen-code:qwen-code"
+	"qwen-code:qwen"
 	"vibe:vibe"
 )
 
