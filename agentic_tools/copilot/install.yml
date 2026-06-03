@@ -1,15 +1,18 @@
 ---
 
-check: gh copilot --help 2>&1 | grep -qi copilot
+check: copilot --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
 
 all:
   type: custom
-  command: gh copilot --help >/dev/null
+  command: |
+    mkdir -p /opt/agentic-tools/copilot/bin;
+    PREFIX="${HOME}/.local" curl -fsSL https://gh.io/copilot-install | bash;
+    install -D -m 0755 "${HOME}/.local/bin/copilot" /opt/agentic-tools/copilot/bin/copilot;
+    test -x /opt/agentic-tools/copilot/bin/copilot
   package: copilot
-  binary: gh
+  binary: copilot
   version:
   build_dep: []
-  run_dep:
-    - gh
-  pre: if ! command -v gh >/dev/null 2>&1; then curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && chmod a+r /usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*; fi
+  run_dep: []
+  pre:
   post:
