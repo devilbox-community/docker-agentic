@@ -201,7 +201,7 @@ RUN set -eux; \
     true
 # -------------------- factory --------------------
 RUN set -eux; \
-    mkdir -p /opt/agentic-tools/factory/bin; version="0.137.1"; arch="$(uname -m)"; case "$arch" in x86_64) arch_dir="linux/amd64" ;; aarch64) arch_dir="linux/arm64" ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac; base_url="https://downloads.factory.ai/factory-cli/releases/${version}/${arch_dir}"; curl -fsSL -o /opt/agentic-tools/factory/bin/droid "$base_url/droid"; curl -fsSL -o /tmp/droid.sha256 "$base_url/droid.sha256"; cd /opt/agentic-tools/factory/bin; sha256sum -c /tmp/droid.sha256; chmod +x /opt/agentic-tools/factory/bin/droid; rm -f /tmp/droid.sha256; \
+    mkdir -p /opt/agentic-tools/factory/bin; curl -fsSL https://app.factory.ai/cli | sh; install -D -m 0755 "${HOME}/.local/bin/droid" /opt/agentic-tools/factory/bin/droid; test -x /opt/agentic-tools/factory/bin/droid; \
     mkdir -p /opt/agentic-tools/factory/bin; \
     if [ ! -x /opt/agentic-tools/factory/bin/droid ] && command -v droid >/dev/null 2>&1; then \
         install -m 0755 "$(command -v droid)" /opt/agentic-tools/factory/bin/droid; \
