@@ -125,10 +125,7 @@ RUN set -eux \
 
 # -------------------- aider --------------------
 RUN set -eux; \
-    pipx install aider-chat; \
-    mkdir -p /opt/agentic-tools/aider/bin; \
-    install -m 0755 /root/.local/bin/aider /opt/agentic-tools/aider/bin/aider; \
-    chmod -R a+rx /root; \
+    uv tool install aider-chat --python 3.12; mkdir -p /opt/agentic-tools/aider/bin; install -D -m 0755 "${HOME}/.local/bin/aider" /opt/agentic-tools/aider/bin/aider; test -x /opt/agentic-tools/aider/bin/aider; \
     mkdir -p /opt/agentic-tools/aider/bin; \
     if [ ! -x /opt/agentic-tools/aider/bin/aider ] && command -v aider >/dev/null 2>&1; then \
         install -m 0755 "$(command -v aider)" /opt/agentic-tools/aider/bin/aider; \
@@ -144,7 +141,9 @@ RUN set -eux; \
     true
 # -------------------- cline --------------------
 RUN set -eux; \
-    curl --version >/dev/null && printf '%s\n' '#!/bin/sh' 'echo "Use Cline in VS Code; this container persists config at /home/devilbox/.config/cline"' > /usr/local/bin/cline && chmod +x /usr/local/bin/cline; \
+    npm install -g @cline/cli@3.0.14; \
+    mkdir -p /opt/agentic-tools/cline/bin; \
+    install -m 0755 "$(command -v cline)" /opt/agentic-tools/cline/bin/cline; \
     mkdir -p /opt/agentic-tools/cline/bin; \
     if [ ! -x /opt/agentic-tools/cline/bin/cline ] && command -v cline >/dev/null 2>&1; then \
         install -m 0755 "$(command -v cline)" /opt/agentic-tools/cline/bin/cline; \
@@ -152,7 +151,9 @@ RUN set -eux; \
     true
 # -------------------- codebuddy --------------------
 RUN set -eux; \
-    mkdir -p /opt/agentic-tools/codebuddy/bin; tmpdir="$(mktemp -d)"; trap 'rm -rf "$tmpdir"' EXIT; arch="$(uname -m)"; case "$arch" in x86_64) arch_tag=x64 ;; aarch64) arch_tag=arm64 ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac; url="https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.101.0/codebuddy-code_Linux_${arch_tag}.tar.gz"; curl -fsSL --proto '=https' --tlsv1.2 -o "$tmpdir/codebuddy.tar.gz" "$url"; tar -xzf "$tmpdir/codebuddy.tar.gz" -C "$tmpdir"; find "$tmpdir" -type f -name codebuddy -perm -111 -exec install -D -m 0755 {} /opt/agentic-tools/codebuddy/bin/codebuddy \; -quit; test -x /opt/agentic-tools/codebuddy/bin/codebuddy; \
+    npm install -g @tencent-ai/codebuddy-code@latest; \
+    mkdir -p /opt/agentic-tools/codebuddy/bin; \
+    install -m 0755 "$(command -v codebuddy)" /opt/agentic-tools/codebuddy/bin/codebuddy; \
     mkdir -p /opt/agentic-tools/codebuddy/bin; \
     if [ ! -x /opt/agentic-tools/codebuddy/bin/codebuddy ] && command -v codebuddy >/dev/null 2>&1; then \
         install -m 0755 "$(command -v codebuddy)" /opt/agentic-tools/codebuddy/bin/codebuddy; \
