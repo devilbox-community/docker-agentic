@@ -134,24 +134,16 @@ agentic_tools_available:
       post: ''
   codewhale:
     disabled: []
-    check: codewhale --version
+    check: codewhale --version && codewhale-tui --version
     all:
       type: custom
-      command: >-
-        mkdir -p /opt/agentic-tools/codewhale/bin /opt/agentic-tools/codewhale/lib;
-        if curl -fsI https://github.com/Hmbown/CodeWhale >/dev/null 2>&1;
-        then git clone --depth 1 https://github.com/Hmbown/CodeWhale /opt/agentic-tools/codewhale/src
-        && python3 -m pip install --break-system-packages
-        --target /opt/agentic-tools/codewhale/lib /opt/agentic-tools/codewhale/src;
-        printf '%s\n' '#!/usr/bin/env bash'
-        'PYTHONPATH=/opt/agentic-tools/codewhale/lib exec python3 -m codewhale "$@"'
-        > /opt/agentic-tools/codewhale/bin/codewhale
-        && chmod +x /opt/agentic-tools/codewhale/bin/codewhale;
-        else echo "WARNING codewhale upstream unavailable";
-        printf '%s\n' '#!/bin/sh' 'echo codewhale upstream unavailable at build time' 'exit 0'
-        > /opt/agentic-tools/codewhale/bin/codewhale
-        && chmod +x /opt/agentic-tools/codewhale/bin/codewhale;
-        fi
+      command: |
+        npm install -g codewhale;
+        mkdir -p /opt/agentic-tools/codewhale/bin;
+        install -D -m 0755 "$(command -v codewhale)" /opt/agentic-tools/codewhale/bin/codewhale;
+        install -D -m 0755 "$(command -v codewhale-tui)" /opt/agentic-tools/codewhale/bin/codewhale-tui;
+        test -x /opt/agentic-tools/codewhale/bin/codewhale;
+        test -x /opt/agentic-tools/codewhale/bin/codewhale-tui
       package: codewhale
       binary: codewhale
       version: ''
