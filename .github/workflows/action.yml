@@ -145,7 +145,7 @@ jobs:
       has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
       run_tests: false
       upload_artifact: true
-      matrix: ${{ format('[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]') }}
+      matrix: [{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]
       artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
       stage: ${{ matrix.tool }}
       stage_prev: work
@@ -160,7 +160,7 @@ jobs:
     uses: devilbox-community/github-actions/.github/workflows/docker-multistage-test.yml@master
     with:
       has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
-      matrix: ${{ format('[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]') }}
+      matrix: [{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]
       artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
       stage: ${{ matrix.tool }}
 
@@ -213,7 +213,7 @@ jobs:
     with:
       can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
       has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
-      matrix: ${{ format('[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]') }}
+      matrix: [{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]
       artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
       stage: ${{ matrix.tool }}
     secrets:
