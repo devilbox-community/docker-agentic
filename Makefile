@@ -24,29 +24,37 @@ DOCKER_PULL_BASE_IMAGES_IGNORE = devilboxcommunity/agentic-base
 # Own vars
 TAG        = latest
 
-# Backward-compat: the legacy build-base / build-work aliases accept RELEASE=...
-# RELEASE is mapped to VERSION inside those alias targets.
-RELEASE   ?= $(VERSION)
-
 # Makefile.docker overwrites
 ORG_USER   = devilboxcommunity
 NAME       = Agentic
-VERSION    = latest
+VERSION    = stable
 IMAGE      = $(ORG_USER)/agentic
 #STAGE      = base
-FILE       = Dockerfile-$(VERSION)
+FILE       = Dockerfile
 DIR        = Dockerfiles/$(STAGE)
 
+# Agent tool names (per-agent harness images)
+AGENTIC_TOOL_NAMES := claude-code codex copilot opencode pi-coding-agent reasonix
+IS_AGENTIC := $(filter $(STAGE),$(AGENTIC_TOOL_NAMES))
+
+# Docker tags: plain stage name for all images
+#   base → :base, work → :work, claude-code → :claude-code
 ifeq ($(strip $(TAG)),latest)
-DOCKER_TAG = $(VERSION)-$(STAGE)
-BASE_TAG   = $(VERSION)-base
-WORK_TAG   = $(VERSION)-work
+DOCKER_TAG = $(STAGE)
+BASE_TAG   = base
+WORK_TAG   = work
 else
-DOCKER_TAG = $(VERSION)-$(STAGE)-$(TAG)
-BASE_TAG   = $(VERSION)-base-$(TAG)
-WORK_TAG   = $(VERSION)-work-$(TAG)
+DOCKER_TAG = $(STAGE)-$(TAG)
+BASE_TAG   = base-$(TAG)
+WORK_TAG   = work-$(TAG)
 endif
 ARCH       = linux/amd64
+
+# Agentic tools live under Dockerfiles/agentic/
+ifneq ($(IS_AGENTIC),)
+FILE = Dockerfile-$(STAGE)
+DIR  = Dockerfiles/agentic
+endif
 
 
 # Makefile.lint overwrites
@@ -64,18 +72,16 @@ help:
 	@echo
 	@echo "gen                                                           Generate agentic tool vars and Dockerfiles"
 	@echo
-	@echo "build STAGE=base|work [VERSION=...] [ARCH=...] [TAG=...]      Build Docker image"
-	@echo "rebuild STAGE=base|work [VERSION=...] [ARCH=...] [TAG=...]    Build Docker image without cache"
-	@echo "push STAGE=base|work [VERSION=...] [ARCH=...] [TAG=...]       Push Docker image to Docker hub"
+	@echo "build STAGE=... [ARCH=...] [TAG=...]                         Build Docker image"
+	@echo "rebuild STAGE=... [ARCH=...] [TAG=...]                       Build Docker image without cache"
+	@echo "push STAGE=... [ARCH=...] [TAG=...]                          Push Docker image to Docker hub"
+	@echo
+	@echo "  STAGE values: base, work, claude-code, codex, copilot, opencode, pi-coding-agent, reasonix"
 	@echo
 	@echo "manifest-create [ARCHES=...] [TAG=...]                        Create multi-arch manifest"
 	@echo "manifest-push [TAG=...]                                       Push multi-arch manifest"
 	@echo
-	@echo "test STAGE=base|work [ARCH=...]                               Test built Docker image"
-	@echo
-	@echo "Deprecated aliases (kept for one release cycle):"
-	@echo "  build-base [RELEASE=...]   -> build STAGE=base VERSION=..."
-	@echo "  build-work [RELEASE=...]   -> build STAGE=work VERSION=..."
+	@echo "test STAGE=... [ARCH=...]                                    Test built Docker image"
 	@echo
 
 
@@ -144,14 +150,12 @@ rebuild: docker-arch-rebuild
 
 .PHONY: push
 push: check-stage-is-set
-push: check-version-is-set
 push: docker-arch-push
 
 .PHONY: tag
 tag: check-stage-is-set
-tag: check-version-is-set
 tag:
-	docker tag $(IMAGE):$(VERSION)-$(STAGE) $(IMAGE):$(DOCKER_TAG)
+	docker tag $(IMAGE):$(STAGE) $(IMAGE):$(DOCKER_TAG)
 
 
 # -------------------------------------------------------------------------------------------------
@@ -159,7 +163,6 @@ tag:
 # -------------------------------------------------------------------------------------------------
 .PHONY: save
 save: check-stage-is-set
-save: check-version-is-set
 save: check-current-image-exists
 save: docker-save
 
@@ -191,7 +194,7 @@ test: test-integration
 
 .PHONY: test-integration
 test-integration:
-	bash tests/test.sh
+	bash tests/test.sh $(IMAGE):$(DOCKER_TAG) $(ARCH) $(STAGE) $(STAGE) $(DOCKER_TAG)
 
 
 # -------------------------------------------------------------------------------------------------
@@ -234,38 +237,11 @@ gen-dockerfiles:
 
 
 # -------------------------------------------------------------------------------------------------
-# Backward-compatibility Targets (DEPRECATED — remove after one release cycle)
-# -------------------------------------------------------------------------------------------------
-
-.PHONY: build-base
-build-base:
-	@echo "[DEPRECATED] 'make build-base' is deprecated. Use 'make build STAGE=base [VERSION=latest|stable]' instead." >&2
-	@$(MAKE) build STAGE=base VERSION=$(RELEASE)
-
-.PHONY: build-work
-build-work:
-	@echo "[DEPRECATED] 'make build-work' is deprecated. Use 'make build STAGE=work [VERSION=latest|stable]' instead." >&2
-	@$(MAKE) build STAGE=work VERSION=$(RELEASE)
-
-
-# -------------------------------------------------------------------------------------------------
 # HELPER TARGETS
 # -------------------------------------------------------------------------------------------------
 
 ###
-### Ensures the VERSION variable is set
-###
-.PHONY: check-version-is-set
-check-version-is-set:
-	@if [ "$(VERSION)" = "" ]; then \
-		echo "This make target requires the VERSION variable to be set."; \
-		echo "make <target> VERSION="; \
-		echo "Exiting."; \
-		exit 1; \
-	fi
-
-###
-### Ensures the STAGE variable is set
+### Ensures the STAGE variable is set and valid
 ###
 .PHONY: check-stage-is-set
 check-stage-is-set:
@@ -275,8 +251,8 @@ check-stage-is-set:
 		echo "Exiting."; \
 		exit 1; \
 	fi
-	@if [ "$(STAGE)" != "base" ] && [ "$(STAGE)" != "work" ]; then \
-		echo "Error, Stage can only be one of 'base' or 'work'."; \
+	@if [ "$(STAGE)" != "base" ] && [ "$(STAGE)" != "work" ] && ! echo "$(AGENTIC_TOOL_NAMES)" | grep -qw "$(STAGE)"; then \
+		echo "Error, Stage can be one of 'base', 'work' or an agent tool: $(AGENTIC_TOOL_NAMES)."; \
 		echo "Exiting."; \
 		exit 1; \
 	fi
@@ -310,8 +286,10 @@ check-current-image-exists:
 ###
 ### Checks if parent image exists and is of correct architecture
 ###
-### Stage chain for agentic: base -> work
-### Only `work` has a parent (`base`). `base` has no parent.
+### Stage chain for agentic: base -> work -> agentic-tool
+### - `work` requires `base`.
+### - Agent tools require `work`.
+### - `base` has no parent.
 ###
 .PHONY: check-parent-image-exists
 check-parent-image-exists: check-stage-is-set
@@ -328,6 +306,22 @@ check-parent-image-exists:
 		ARCH="$$( docker image inspect $(IMAGE):$(BASE_TAG) --format '{{.Architecture}}' )"; \
 		if [ "$${OS}/$${ARCH}" != "$(ARCH)" ]; then \
 			>&2 echo "Docker image '$(IMAGE):$(BASE_TAG)' has invalid architecture: $${OS}/$${ARCH}"; \
+			>&2 echo "Expected: $(ARCH)"; \
+			>&2 echo; \
+			exit 1; \
+		fi; \
+	elif echo "$(AGENTIC_TOOL_NAMES)" | grep -qw "$(STAGE)"; then \
+		if [ "$$( docker images -q $(IMAGE):$(WORK_TAG) )" = "" ]; then \
+			>&2 echo "Docker image '$(IMAGE):$(WORK_TAG)' was not found locally."; \
+			>&2 echo "Either build it first or explicitly pull it from Dockerhub."; \
+			>&2 echo "This is a safeguard to not automatically pull the Docker image."; \
+			>&2 echo; \
+			exit 1; \
+		fi; \
+		OS="$$( docker image inspect $(IMAGE):$(WORK_TAG) --format '{{.Os}}' )"; \
+		ARCH="$$( docker image inspect $(IMAGE):$(WORK_TAG) --format '{{.Architecture}}' )"; \
+		if [ "$${OS}/$${ARCH}" != "$(ARCH)" ]; then \
+			>&2 echo "Docker image '$(IMAGE):$(WORK_TAG)' has invalid architecture: $${OS}/$${ARCH}"; \
 			>&2 echo "Expected: $(ARCH)"; \
 			>&2 echo; \
 			exit 1; \
