@@ -14,5 +14,5 @@ TAG="${5}"
 . "${BASH_SOURCE%/*}/../.lib.sh"
 
 log "Verify base entrypoint helper library can be sourced"
-run "timeout 60 docker run --rm \"${IMAGE}\" bash -c 'source /docker-entrypoint.d/100-base-libs.sh && log \"ok\" >/dev/null'"
+run "timeout 60 docker run --rm \"${IMAGE}\" bash -c 'source /docker-entrypoint.d/100-base-libs.sh && log ok tested 1 >/dev/null'"
 pass "100-base-libs.sh helper source succeeds (${ARCH} ${VERSION} ${FLAVOUR} ${TAG})"

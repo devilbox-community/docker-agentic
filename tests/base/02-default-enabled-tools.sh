@@ -13,31 +13,23 @@ TAG="${5}"
 # shellcheck disable=SC1091
 . "${BASH_SOURCE%/*}/../.lib.sh"
 
+# Base image ships only spec/workflow tools (openspec + speckit).
+# Agent harness tools (claude-code, codex, copilot, opencode,
+# pi-coding-agent, reasonix) live in their own per-agent images.
+# npm-installed tools resolve via /opt/nvm/current/bin (before
+# /usr/local/bin in PATH); pipx-installed tools resolve via
+# /usr/local/bin.
 DEFAULT_ENABLED_TOOLS=(
-	"claude-code:claude"
-	"codewhale:codewhale"
-	"codex:codex"
-	"copilot:copilot"
-	"gemini:gemini"
-	"hermes:hermes"
-	"openclaw:openclaw"
-	"opencode:opencode"
 	"openspec:openspec"
-	"pi-coding-agent:pi"
-	"reasonix:reasonix"
 	"speckit:specify"
 )
 
-log "Verify default-enabled agentic tools are linked on PATH (${ARCH} ${VERSION} ${FLAVOUR} ${TAG})"
+log "Verify default-enabled agentic tools are on PATH (${ARCH} ${VERSION} ${FLAVOUR} ${TAG})"
 for pair in "${DEFAULT_ENABLED_TOOLS[@]}"; do
 	slug="${pair%%:*}"
 	binary="${pair#*:}"
 	log "Checking default-enabled tool: ${slug} (${binary})"
-	path="$(timeout 60 docker run --rm "${IMAGE}" sh -c "which ${binary}")"
-	case "${path}" in
-		/usr/local/bin/*) ;;
-		*) fail "${slug} (${binary}) resolved outside /usr/local/bin: ${path}" ;;
-	esac
+	run "timeout 60 docker run --rm \"${IMAGE}\" sh -c \"which ${binary}\""
 done
 
-pass "All 12 default-enabled tools resolve under /usr/local/bin"
+pass "All 2 default-enabled tools resolve on PATH (agent harness tools are per-image)"

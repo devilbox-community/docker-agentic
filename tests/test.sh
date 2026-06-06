@@ -29,10 +29,6 @@ VERSION="${3}"
 FLAVOUR="${4}"
 TAG="${5}"
 
-if [ "${FLAVOUR}" != "base" ] && [ "${FLAVOUR}" != "work" ]; then
-	fail "Unsupported flavour: ${FLAVOUR} (expected base or work)"
-fi
-
 
 ###
 ### Run tests
@@ -65,7 +61,15 @@ function run_stage_dir() {
 	done
 }
 
-run_stage_dir "${FLAVOUR}"
+# Per-agent tool test — run base tests against the agent image.
+# The base image is the parent of all agent images, so base tests
+# (like UID/GID mapping, timezone, git, gh) still apply.
+if [ "${FLAVOUR}" != "base" ] && [ "${FLAVOUR}" != "work" ]; then
+	log "Running base-stage tests against per-agent image: ${FLAVOUR}"
+	run_stage_dir "base"
+else
+	run_stage_dir "${FLAVOUR}"
+fi
 
 log "Test summary: ${PASS_COUNT} passed, ${FAIL_COUNT} failed"
 if [ "${FAIL_COUNT}" -ne 0 ]; then

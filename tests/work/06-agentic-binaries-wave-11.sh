@@ -13,20 +13,19 @@ TAG="${5}"
 # shellcheck disable=SC1091
 . "${BASH_SOURCE%/*}/../.lib.sh"
 
-DEFAULT_BINARIES=(copilot codex codewhale)
-INSTALLED_ONLY_BINARIES=(droid qodercli qwen cline codebuddy multica aider)
+# Base image ships openspec + speckit as default-enabled.
+# openspec is npm-installed → resolves via /opt/nvm/current/bin
+# (before /usr/local/bin in PATH). Accept any valid path.
+DEFAULT_BINARIES=(openspec specify)
+INSTALLED_ONLY_BINARIES=()
 
-log "Verify Wave 11 renamed/default binaries (${ARCH} ${VERSION} ${FLAVOUR} ${TAG})"
+log "Verify base-image default-enabled binaries (${ARCH} ${VERSION} ${FLAVOUR} ${TAG})"
 for binary in "${DEFAULT_BINARIES[@]}"; do
-	run "timeout 60 docker run --rm \"${IMAGE}\" sh -c \"which ${binary} | grep -q '^/usr/local/bin/${binary}$'\""
+	run "timeout 60 docker run --rm \"${IMAGE}\" sh -c \"which ${binary}\""
 done
 
 for binary in "${INSTALLED_ONLY_BINARIES[@]}"; do
 	run_fail "timeout 60 docker run --rm \"${IMAGE}\" sh -c \"which ${binary}\""
 done
 
-run "timeout 60 docker run --rm \"${IMAGE}\" test -x /opt/agentic-tools/factory/bin/droid"
-run "timeout 60 docker run --rm \"${IMAGE}\" test -x /opt/agentic-tools/qoder/bin/qodercli"
-run "timeout 60 docker run --rm \"${IMAGE}\" test -x /opt/agentic-tools/qwen-code/bin/qwen"
-
-pass "Wave 11 binary names are wired correctly"
+pass "Base-image agentic binaries are wired correctly (agent harness tools are per-image)"
