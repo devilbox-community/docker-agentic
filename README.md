@@ -13,59 +13,91 @@ cd devilbox
 
 Node.js is managed via nvm at `/opt/nvm` (default: LTS). Bun is available at `/usr/local/bin/bun`.
 
-## Bundled CLI tools
+## Architecture
 
-29 tools are included. 12 tools are enabled by default (see `AGENTIC_TOOLS_ENABLE` below), while 17 are opt-in.
+The project follows the multi-stage image pattern from `docker-php-fpm`:
 
-| Name | Install type | Default | Auth method | Persistence path |
-|---|---|---|---|---|
-| aider | native bash | OFF | api-key | `cfg/agentic-aider/` |
-| claude-code | native bash | ON | device-code | `cfg/agentic-claude/` |
-| cline | npm | OFF | host-ide | `cfg/agentic-cline/` |
-| codewhale | pip | ON | api-key | `cfg/agentic-codewhale/` |
-| codex | native bash | ON | device-code | `cfg/agentic-codex/` |
-| continue | native bash | OFF | host-ide | `cfg/agentic-continue/` |
-| crush | native bash | OFF | api-key | `cfg/agentic-crush/` |
-| gemini | npm | ON | api-key | `cfg/agentic-gemini/` |
-| copilot | native bash | ON | device-code | `cfg/agentic-copilot/` |
-| goose | native bash | OFF | api-key | `cfg/agentic-goose/` |
-| hermes | native bash | ON | api-key | `cfg/agentic-hermes/` |
-| llm | native bash | OFF | api-key | `cfg/agentic-llm/` |
-| multica | native bash | OFF | api-key | `cfg/agentic-multica/` |
-| openclaw | native bash | ON | callback | `cfg/agentic-openclaw/` |
-| opencode | native bash | ON | callback | `cfg/agentic-opencode/` |
-| pi-coding-agent | npm | ON | api-key | `cfg/agentic-pi-coding-agent/` |
-| qwen-code | native bash | OFF | api-key | `cfg/agentic-qwen-code/` |
-| reasonix | pip | ON | api-key | `cfg/agentic-reasonix/` |
+| Stage | Image | Contents |
+|-------|-------|----------|
+| `base` | `devilboxcommunity/agentic:base` | Debian + runtimes (go, node, bun, python) + extra tools |
+| `work` | `devilboxcommunity/agentic:work` | Base + build toolchain + sudo + bash completions |
+| Per-agent | `devilboxcommunity/agentic:claude-code`, etc. | Work + single agent harness tool |
+
+### Extra tools (built into base image)
+
+These are shared spec/workflow utilities available to all per-agent images.
+
+| Name | Type | Binary | Purpose |
+|------|------|--------|---------|
+| [openspec](extra_tools/openspec/) | npm | `openspec` | Spec-driven development workflow |
+| [speckit](extra_tools/speckit/) | pip | `specify` | GitHub Spec Kit bootstrap CLI |
+
+### Agentic tools (per-agent images)
+
+Each agent harness CLI gets its own Docker image layered on top of `work`.
+
+| Name | Type | Binary | Image tag |
+|------|------|--------|-----------|
+| [claude-code](agentic_tools/claude-code/) | custom | `claude` | `claude-code` |
+| [codex](agentic_tools/codex/) | custom | `codex` | `codex` |
+| [copilot](agentic_tools/copilot/) | custom | `copilot` | `copilot` |
+| [opencode](agentic_tools/opencode/) | custom | `opencode` | `opencode` |
+| [pi-coding-agent](agentic_tools/pi-coding-agent/) | custom | `pi` | `pi-coding-agent` |
+| [reasonix](agentic_tools/reasonix/) | npm | `reasonix` | `reasonix` |
 
 ## ENABLE/DISABLE toggle
 
-Runtime toggle environment variables manage tool availability. 12 tools are enabled by default (claude-code, codex, codewhale, copilot, gemini, hermes, openclaw, opencode, openspec, pi-coding-agent, reasonix, speckit).
+Runtime toggle environment variables manage tool availability in the base image:
 
-- `AGENTIC_TOOLS_ENABLE=aider,crush` — Enables these additional tools at startup.
-- `AGENTIC_TOOLS_DISABLE=copilot` — Disables a tool that is enabled by default.
+- `AGENTIC_TOOLS_ENABLE` — Enables additional tools at startup.
+- `AGENTIC_TOOLS_DISABLE=speckit` — Disables a tool that is enabled by default.
 
-Toggle state is evaluated at the container entrypoint. See `Dockerfiles/base/data/agentic_tools/_defaults.yml` for the canonical list of defaults.
+Toggle state is evaluated at the container entrypoint.
 
 ## Build
 
 ```bash
 make gen
-make build STAGE=base VERSION=latest
-make build STAGE=work VERSION=latest
-make test STAGE=work VERSION=latest
+make build STAGE=base
+make build STAGE=work
+make test STAGE=base
 make lint
+```
+
+### Per-agent builds
+
+```bash
+make build STAGE=claude-code
+make build STAGE=opencode
+make rebuild STAGE=codex
+make push STAGE=copilot
 ```
 
 Arguments mirror `docker-php-fpm`:
 
-- `STAGE`   — `base` or `work` (required for `build`/`rebuild`/`push`/`test`).
-- `VERSION` — `latest` or `stable` (defaults to `latest`).
-- `ARCH`    — `linux/amd64` (default) or `linux/arm64`.
-- `TAG`     — Optional suffix appended to the Docker tag.
+- `STAGE` — `base`, `work`, or an agent tool name (`claude-code`, `codex`, `copilot`, `opencode`, `pi-coding-agent`, `reasonix`).
+- `ARCH` — `linux/amd64` (default) or `linux/arm64`.
+- `TAG`  — Optional suffix appended to the Docker tag.
 
-The legacy `make build-base` / `make build-work [RELEASE=...]` targets still
-work but print a deprecation warning; they forward to `make build STAGE=...`.
+## Adding a new tool
+
+### Extra tool (shared, goes in base)
+
+```bash
+mkdir -p extra_tools/my-tool
+# Create options.yml, install.yml, README.md
+make gen
+make build STAGE=base
+```
+
+### Agentic tool (per-agent image)
+
+```bash
+mkdir -p agentic_tools/my-agent
+# Create options.yml, install.yml, README.md
+make gen
+make build STAGE=my-agent
+```
 
 ## Integration with Devilbox
 

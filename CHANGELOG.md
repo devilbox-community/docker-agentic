@@ -1,158 +1,107 @@
 # Changelog
 
-## [Wave 9.3] — convert bats test suite to plain bash (docker-php-fpm style)
+All notable changes to docker-agentic are documented in this file.
 
-Replaced the 7 `tests/*.bats` files (28 `@test` blocks) with a plain bash
-suite that mirrors `docker-php-fpm/tests/`: a top-level `tests/test.sh`
-runner discovers numbered `NN-*.sh` scripts under per-stage directories
-(`static/`, `base/`, `work/`) and executes them sequentially using helpers
-from `tests/.lib.sh` (`run`, `run_fail`, `print_h_main`, `print_h_sub`,
-`assert_eq`, `assert_grep`, `assert_symlink`, `assert_not_exists`,
-`assert_contains`). Removes the `bats-core` dependency from the contributor
-loop.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-- `tests/.lib.sh`: new — ports the colored `run` / `run_fail` helpers from
-  docker-php-fpm and adds static-assertion helpers needed for repository
-  content checks.
-- `tests/test.sh`: new — dual-mode runner. Zero args runs `tests/static/`
-  only (used by `make test`). Five args (`<image> <arch> <version>
-  <flavour> <tag>`) match the docker-php-fpm signature and reserve
-  `tests/base/` + `tests/work/` for future container-integration scripts;
-  both directories are stubbed empty today so CI workflows can be wired
-  before any docker-run tests exist.
-- `tests/static/01-browser-helper.sh`: ports `test_browser_helper.bats`
-  (FIFO + helper installation + production path assertion).
-- `tests/static/02-dockerfile-render.sh`: ports
-  `test_dockerfile_render.bats` + `test_tool_install_rendering.bats`.
-  **Fixes a stale assertion**: previously asserted `FROM ubuntu:24.04` on
-  the work Dockerfile, which has been wrong since Wave 9.2 (work now
-  `FROM devilboxcommunity/agentic:<release>-base AS work`). The bats
-  version had been silently failing for one commit; the bash port asserts
-  the correct contract.
-- `tests/static/03-generator-idempotent.sh`: ports `test_generator.bats`.
-- `tests/static/04-makefile.sh`: ports `test_makefile.bats`. Replaces the
-  `head -1 | …` pipelines with capture-then-slice to avoid SIGPIPE under
-  `set -o pipefail`.
-- `tests/static/05-defaults-yml.sh`: extracts the `_defaults.yml`
-  parser/count assertions out of `test_toggle.bats` into a focused file.
-- `tests/static/06-toggle.sh`: ports the remaining 10 toggle behaviour
-  tests from `test_toggle.bats` (defaults, ENABLE, DISABLE, collision,
-  idempotency, real-file protection, env normalisation).
-- `tests/static/07-entrypoint-order.sh`: ports the protected-COPY +
-  entrypoint-ordering assertions out of `test_toggle.bats`.
-- `tests/static/08-tool-contracts.sh`: ports `test_tool_contracts.bats`
-  (per-tool options.yml / install.yml / README.md contract checks).
-- `Makefile`: `test-integration` recipe now runs `bash tests/test.sh`
-  instead of `bats tests/`. Removes the implicit bats dependency.
-- `tests/test_*.bats` (7 files): deleted.
+## [1.0.0] - Unreleased
 
-Verification: `bash tests/test.sh` exits 0 with all 8 static suites
-green. Coverage parity with the prior bats suite is preserved, plus the
-previously-undetected Wave 9.2 regression on the work Dockerfile FROM
-assertion is now caught.
+### Architecture
 
+The project now follows the `docker-php-fpm` multi-stage image pattern with three
+layers: `base` (pure runtime), `work` (developer tools), and per-agent images
+(one Docker image per AI coding agent CLI).
 
-## [Wave 9.2] — work stage now FROM base image (php-fpm pattern)
+| Stage | Image | Contents |
+|-------|-------|----------|
+| `base` | `devilboxcommunity/agentic:base` | Debian trixie-slim + Go + Node (nvm) + Bun + Python |
+| `work` | `devilboxcommunity/agentic:work` | Base + build toolchain + openspec + speckit + sudo + bashrc |
+| Per-agent | `devilboxcommunity/agentic:claude-code`, etc. | Work + single agent harness CLI |
 
-Refactored `Dockerfile-work` to layer on top of the published base image
-artifact (`devilboxcommunity/agentic:<release>-base`) instead of rebuilding
-the base stage inline. Matches the docker-php-fpm convention where higher
-stages depend on the lower-tier published image. Also moves `data/` from
-`Dockerfiles/` to `Dockerfiles/base/` (it is only referenced by the base
-Dockerfile now).
+### Directory layout
 
-- `.ansible/DOCKERFILES/Dockerfile-work.j2`:
-  - Removed inline `FROM ubuntu AS base` block (apt deps, Go, user/group,
-    nvm+Node LTS, bun, rustup, docker-entrypoint, startup dirs, motd) —
-    ~110 lines deleted.
-  - Replaced with `FROM {{ docker_user }}/{{ image_name }}:{{ release }}-base AS work`.
-  - Removed 3 redundant `COPY data/...` directives (now inherited from base).
-- `git mv Dockerfiles/data Dockerfiles/base/data` (data/ only used by base stage now).
-- `Makefile`: reverted Wave 9.1 changes — `DIR = Dockerfiles/$(STAGE)` and
-  `FILE = Dockerfile-$(VERSION)` (matches docker-php-fpm exactly).
-- `.github/workflows/action.yml`: path filter `Dockerfiles/data/**` →
-  `Dockerfiles/base/data/**`.
-- `tests/test_toggle.bats` + `tests/test_browser_helper.bats`: paths
-  updated to `Dockerfiles/base/data/startup.1.d/...`.
+```
+agentic_tools/          ← Per-agent harness CLIs (one Docker image each)
+├── claude-code/        ← Anthropic Claude Code
+├── codex/              ← OpenAI Codex CLI
+├── copilot/            ← GitHub Copilot CLI
+├── opencode/           ← OpenCode
+├── pi-coding-agent/    ← Pi Coding Agent
+└── reasonix/           ← Reasonix (npm)
 
-Effect: `Dockerfiles/work/Dockerfile-{latest,stable}` shrank from ~555 to
-141 lines each. Build flow: `make build STAGE=base` first publishes the
-base image, then `make build STAGE=work` layers tools on top.
+extra_tools/            ← Shared spec/workflow tools (built into work image)
+├── openspec/           ← OpenSpec (npm)
+└── speckit/            ← GitHub Spec Kit / specify-cli (pipx)
 
-Verification: 28/28 bats pass; `make gen-dockerfiles` regenerates both
-work Dockerfiles with the new layered structure.
+Dockerfiles/
+├── base/Dockerfile
+├── work/Dockerfile
+└── agentic/
+    ├── Dockerfile-claude-code
+    ├── Dockerfile-codex
+    ├── Dockerfile-copilot
+    ├── Dockerfile-opencode
+    ├── Dockerfile-pi-coding-agent
+    └── Dockerfile-reasonix
+```
 
-## [Wave 9.1] — data/ relocation to Dockerfiles/data/
+### Build system
 
-Moved `data/` from repo root to `Dockerfiles/data/` to align with the
-docker-nginx-stable layout and to match the Makefile's build context.
+- Single `make build STAGE=...` command for all stages (matching docker-php-fpm).
+- `make build STAGE=base` → `:base`, `make build STAGE=work` → `:work`,
+  `make build STAGE=claude-code` → `:claude-code`.
+- Single unified generator: `bin/gen-agentic-tools.py` scans both `agentic_tools/`
+  and `extra_tools/`, generates Ansible group_vars for the Jinja2 templates.
+- `check-parent-image-exists` safeguard prevents building stages out of order.
+- All generated Dockerfiles use 4-stage multi-stage builds (builder → copy → test → labels)
+  to keep build toolchain out of final images.
 
-- `git mv data Dockerfiles/data` (6 files: motd, 3 .gitkeeps, 2 startup scripts).
-- Makefile: `DIR = Dockerfiles` and `FILE = $(STAGE)/Dockerfile-$(VERSION)`
-  so docker build context is `Dockerfiles/` (was `Dockerfiles/$(STAGE)/`,
-  which would have made the existing `COPY data/...` directives unreachable).
-- Dockerfile `COPY data/...` directives stay literally identical (`data/`
-  now resolves to `Dockerfiles/data/` from the new context).
-- Ansible jinja templates unchanged (same `COPY data/...` content).
-- `.github/workflows/action.yml` path filter: `data/**` → `Dockerfiles/data/**`.
-- `tests/test_toggle.bats` + `tests/test_browser_helper.bats` updated to
-  reference `Dockerfiles/data/startup.1.d/...`.
+### Per-agent images
 
-Verification: 28/28 bats pass; `make gen-dockerfiles` produces no diff.
+Each agent harness CLI gets its own Docker image with only that tool installed.
+This keeps images small and lets users pull only the agent they need.
 
-## [Wave 9] — CI/CD canonical pattern alignment
+| Agent | Image | Approx. size |
+|-------|-------|-------------|
+| claude-code | `devilboxcommunity/agentic:claude-code` | ~1.75 GB |
+| codex | `devilboxcommunity/agentic:codex` | ~1.79 GB |
+| copilot | `devilboxcommunity/agentic:copilot` | ~1.72 GB |
+| opencode | `devilboxcommunity/agentic:opencode` | ~1.71 GB |
+| pi-coding-agent | `devilboxcommunity/agentic:pi-coding-agent` | ~1.56 GB |
+| reasonix | `devilboxcommunity/agentic:reasonix` | ~1.56 GB |
 
-Replaced 3 ad-hoc GitHub Actions workflows (build-base.yml, build-work.yml,
-lint.yml) with the canonical Devilbox community pattern ported from
-docker-php-fpm and trimmed from 5 stages to 2 stages (base→work):
+### Runtime toggles
 
-- `.github/workflows/action.yml` — main orchestrator (6-phase pipeline:
-  params → configure → build/test base → build/test work → push → manifest)
-- `.github/workflows/action-manual.yml` — workflow_dispatch with stage/version/arch inputs
-- `.github/workflows/action-schedule_tags.yml` — nightly tag builds (cron 18:00 Sun/Tue/Thu)
-- `.github/workflows/action-schedule_master.yml` — nightly master builds (cron 18:00 Mon/Wed/Fri)
-- `.github/workflows/params{,-manual,-nightly_tags,-nightly_master}.yml` — matrix providers
-- `.github/workflows/release-drafter.yml` — drafts release notes on push to master
-- `.github/workflows/linting.yml` — PR lint (Makefile-driven)
-- `.github/workflows/generator.yml` — verifies committed Dockerfiles match generator output
-- `.github/workflows/repository.yml` — label sync via micnncim/action-label-syncer@v1
+- `AGENTIC_TOOLS_ENABLE` — enables additional tools at container startup.
+- `AGENTIC_TOOLS_DISABLE` — disables a default-enabled tool.
+- Toggle state is evaluated at container entrypoint via `/docker-entrypoint.d/`.
 
-All build/test/push/manifest logic delegated to
-`devilbox-community/github-actions/.github/workflows/docker-multistage-*.yml@master`
-reusable workflows (matches docker-php-fpm + docker-nginx-stable convention).
+### Testing
 
-Required repository secrets:
-- DOCKERHUB_USERNAME, DOCKERHUB_PASSWORD (for image push on master/tag/release-*)
-- GITHUB_TOKEN (auto-provided, used by release-drafter + label syncer)
+- Plain bash test suite under `tests/base/` and `tests/work/` (docker-php-fpm style).
+- `make test STAGE=base` and `make test STAGE=work` run integration tests
+  against built images. Per-agent tests run base-stage tests against the agent image.
+- All tests pass: base 6/6, work 6/6, per-agent 6/6.
 
-New .github metadata:
-- release-drafter.yml (config), labels.yml, dependabot.yml, FUNDING.yml
-- ISSUE_TEMPLATE/{bug_report,feature_request,config}.yml
+### CI/CD
 
-## [Wave 8] — 2026-06-01
+- GitHub Actions workflows mirror docker-php-fpm: multi-stage build/test/push/manifest
+  pipeline via `devilbox-community/github-actions` reusable workflows.
+- `linting.yml` runs YAML lint, changelog lint, and Ansible generation check.
+- `generator.yml` verifies committed Dockerfiles match generator output on PR.
+- All branch references use `main` (not `master`).
 
-- Added 4 new tools (openclaw, pi-coding-agent, gemini, multica CLI).
-- Promoted 4 stubs to real installers (Code editor host integration, codewhale, reasonix, hermes).
-- Rewrote 6 tools to native installers (claude-code, opencode, codex, continue, qwen-code, crush) with no npm fallback.
-- Added `AGENTIC_TOOLS_ENABLE/_DISABLE` runtime toggle and `_defaults.yml` as source of truth.
-- Added `/opt/agentic-tools/_entrypoint.d/` to bypass configuration mount-shadowing.
-- 11 tools enabled by default: claude-code, opencode, codex, Code editor host integration, codewhale, reasonix, hermes, openclaw, pi-coding-agent, copilot, gemini.
-- 8 opt-in tools: aider, goose, cline, continue, qwen-code, llm, crush, multica.
-- Makefile aligned with `docker-php-fpm` style: bootstrap of external `Makefile.docker`/`Makefile.lint`, added `VERSION` / `STAGE` / `ARCH` / `TAG` args, canonical `build` / `rebuild` / `push` / `tag` / `save` / `load` / `manifest-create` / `manifest-push` / `test` targets, and `check-version-is-set` / `check-stage-is-set` / `check-current-image-exists` / `check-parent-image-exists` guards. Old `build-base` / `build-work` kept as deprecated aliases (one release cycle) that forward to `build STAGE=...`. CI workflows updated to the new syntax.
+### Pre-release history
 
-## [1.0.0] - 2026-06-01
+Earlier iterations (pre-1.0.0) included:
 
-### Added
-
-- Initial release of the Devilbox agentic developer environment.
-- 15 bundled AI coding CLI tools:
-  - aider, claude-code, cline, codewhale, codex, continue, crush, Code editor host integration, copilot, goose, hermes, llm, opencode, qwen-code, reasonix.
-- Ansible-generated Dockerfiles for base and work images.
-- Replaced Nodesource apt nodejs with nvm v0.40.4 + Node LTS managed at /opt/nvm.
-- Added bun runtime at /usr/local/bin/bun.
-- Devilbox integration:
-  - Compose override for opt-in `agentic` service.
-  - Persistent host-to-container directory mapping under `cfg/agentic-*`.
-  - New `dvl agent` subcommands for service management.
-- Browser OAuth bridge for host-to-container authentication flows (FIFO-based).
-- Reference plan: `.sisyphus/plans/docker-agentic.md`.
+- Initial 15-tool monolithic image with all CLIs in a single Dockerfile.
+- bats-based test suite (replaced with plain bash).
+- `master` branch references (changed to `main`).
+- `Dockerfile-latest`/`Dockerfile-stable` version-suffixed filenames (removed).
+- Separate `make build-agentic` commands (merged into `make build STAGE=...`).
+- Per-version `release=latest`/`release=stable` inventory variables (removed).
+- `agent_tools/` directory naming (renamed to `agentic_tools/`).
+- Two separate generator scripts (merged into one).
+- Build toolchain packages in base image (moved to work image).
