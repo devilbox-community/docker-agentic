@@ -61,12 +61,13 @@ function run_stage_dir() {
 	done
 }
 
-# Per-agent tool test — run base tests against the agent image.
-# The base image is the parent of all agent images, so base tests
-# (like UID/GID mapping, timezone, git, gh) still apply.
+# Per-agent tool test — run base AND work tests against the agent image.
+# Agent images FROM work (which FROM base), so both stage tests apply.
 if [ "${FLAVOUR}" != "base" ] && [ "${FLAVOUR}" != "work" ]; then
 	log "Running base-stage tests against per-agent image: ${FLAVOUR}"
 	run_stage_dir "base"
+	log "Running work-stage tests against per-agent image: ${FLAVOUR}"
+	run_stage_dir "work"
 else
 	run_stage_dir "${FLAVOUR}"
 fi
