@@ -129,8 +129,9 @@ jobs:
   # -----------------------------------------------------------------------------------------------
   # (5/6) Build & Test agentic tools (per-agent images)
   # -----------------------------------------------------------------------------------------------
-  # Each agent tool is its own stage. VERSION in the matrix IS the tool name,
-  # and STAGE is set to match so the Makefile produces the correct tag.
+  # Each agent tool is its own stage. VERSION is "latest" (matching
+  # configure output's artifact prefix). STAGE is the tool name so the
+  # Makefile resolves the per-tool Dockerfile and produces the correct tag.
   build-agentic-tools:
     needs:
       - configure
@@ -144,7 +145,7 @@ jobs:
       has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
       run_tests: false
       upload_artifact: true
-      matrix: ${{ format('[{{"NAME":"Agentic","VERSION":"{0}","FLAVOUR":"default","ARCH":"linux/amd64"}}]', matrix.tool) }}
+      matrix: ${{ format('[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]') }}
       artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
       stage: ${{ matrix.tool }}
       stage_prev: work
@@ -159,7 +160,7 @@ jobs:
     uses: devilbox-community/github-actions/.github/workflows/docker-multistage-test.yml@master
     with:
       has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
-      matrix: ${{ format('[{{"NAME":"Agentic","VERSION":"{0}","FLAVOUR":"default","ARCH":"linux/amd64"}}]', matrix.tool) }}
+      matrix: ${{ format('[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]') }}
       artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
       stage: ${{ matrix.tool }}
 
@@ -212,7 +213,7 @@ jobs:
     with:
       can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
       has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
-      matrix: ${{ format('[{{"NAME":"Agentic","VERSION":"{0}","FLAVOUR":"default","ARCH":"linux/amd64"}}]', matrix.tool) }}
+      matrix: ${{ format('[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]') }}
       artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
       stage: ${{ matrix.tool }}
     secrets:
