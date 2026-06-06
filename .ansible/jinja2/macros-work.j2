@@ -3,60 +3,186 @@
 ##################################################################################################}
 {% import './jinja2/macros.j2' as fn %}
 
+
+
+{##################################################################################################
+# GENERIC MACROS
+##################################################################################################}
+
+{#-
+###
+### Get 'type'
+###
+### Returns type string
+###
+-#}
 {%- macro get_type(name, items) -%}
-    {{- fn.get_val(name, items, 'type', '<WRONG TYPE>') -}}
+	{{- fn.get_val(name, items, 'type', '<WRONG TYPE>') -}}
 {%- endmacro -%}
 
+{#-
+###
+### Get 'pre'
+###
+### Returns pre string
+###
+-#}
 {%- macro get_pre(name, items) -%}
-    {{- fn.get_val(name, items, 'pre', '') -}}
+	{{- fn.get_val(name, items, 'pre', '') -}}
 {%- endmacro -%}
 
+{#-
+###
+### Get 'post'
+###
+### Returns post string
+###
+-#}
 {%- macro get_post(name, items) -%}
-    {{- fn.get_val(name, items, 'post', '') -}}
+	{{- fn.get_val(name, items, 'post', '') -}}
 {%- endmacro -%}
 
+{#-
+###
+### Get 'binary'
+###
+### Returns binary name string
+###
+-#}
 {%- macro get_binary(name, items) -%}
-    {{- fn.get_val(name, items, 'binary', name) -}}
+	{{- fn.get_val(name, items, 'binary', name) -}}
 {%- endmacro -%}
 
+{#-
+###
+### Get 'build_dep'
+###
+### Returns json string (jsonified list) of build_dep (use '| from_json' to eval)
+###
+-#}
 {%- macro get_build_dep(name, items) -%}
-    {{- fn.get_list(name, items, 'build_dep') -}}
+	{{- fn.get_list(name, items, 'build_dep') -}}
 {%- endmacro -%}
 
+{#-
+###
+### Get 'run_dep'
+###
+### Returns json string (jsonified list) of run_dep (use '| from_json' to eval)
+###
+-#}
 {%- macro get_run_dep(name, items) -%}
-    {{- fn.get_list(name, items, 'run_dep') -}}
+	{{- fn.get_list(name, items, 'run_dep') -}}
 {%- endmacro -%}
 
-{%- macro tool_apt_get_package(name, items) -%}
-    {{- fn.get_val_by_type(name, items, 'package', 'apt', name) -}}
-{%- endmacro -%}
 
-{%- macro tool_npm_get_package(name, items) -%}
-    {{- fn.get_val_by_type(name, items, 'package', 'npm', name) -}}
-{%- endmacro -%}
 
-{%- macro tool_npm_get_version(name, items) -%}
-    {%- set version = fn.get_val_by_type(name, items, 'version', 'npm', '') -%}
-    {%- if version | length -%}{{- '@' ~ version -}}{%- endif -%}
-{%- endmacro -%}
+{##################################################################################################
+# TOOLS SPECIFIC MACROS
+##################################################################################################}
 
-{%- macro tool_pip_get_package(name, items) -%}
-    {{- fn.get_val_by_type(name, items, 'package', 'pip', name) -}}
-{%- endmacro -%}
-
-{%- macro tool_pip_get_version(name, items) -%}
-    {%- set version = fn.get_val_by_type(name, items, 'version', 'pip', '') -%}
-    {%- if version | length -%}{{- '==' ~ version -}}{%- endif -%}
-{%- endmacro -%}
-
-{%- macro tool_curl_get_command(name, items) -%}
-    {{- fn.get_val_by_type(name, items, 'command', 'curl', '') -}}
-{%- endmacro -%}
-
+{# --------------------------------------------- CUSTOM --------------------------------------- -#}
+{#-
+###
+### Get 'command'
+### type: custom
+###
+-#}
 {%- macro tool_custom_get_command(name, items) -%}
-    {{- fn.get_val_by_type(name, items, 'command', 'custom', '') -}}
+	{{- fn.get_val_by_type(name, items, 'command', 'custom', '') -}}
 {%- endmacro -%}
 
+
+{# --------------------------------------------- NPM ------------------------------------------ -#}
+{#-
+###
+### Get 'package'
+### type: npm
+###
+-#}
+{%- macro tool_npm_get_package(name, items) -%}
+	{{- fn.get_val_by_type(name, items, 'package', 'npm', name) -}}
+{%- endmacro -%}
+
+{#-
+###
+### Get 'version'
+### type: npm
+###
+-#}
+{%- macro tool_npm_get_version(name, items) -%}
+	{%- set version = fn.get_val_by_type(name, items, 'version', 'npm', '') -%}
+	{%- if version | length -%}
+		{{- '@' ~ version -}}
+	{%- else -%}
+		{{- '' -}}
+	{%- endif -%}
+{%- endmacro -%}
+
+
+{# --------------------------------------------- PIP ------------------------------------------ -#}
+{#-
+###
+### Get 'package'
+### type: pip
+###
+-#}
+{%- macro tool_pip_get_package(name, items) -%}
+	{{- fn.get_val_by_type(name, items, 'package', 'pip', name) -}}
+{%- endmacro -%}
+
+{#-
+###
+### Get 'version'
+### type: pip
+###
+-#}
+{%- macro tool_pip_get_version(name, items) -%}
+	{%- set version = fn.get_val_by_type(name, items, 'version', 'pip', '') -%}
+	{%- if version | length -%}
+		{{- '==' ~ version -}}
+	{%- else -%}
+		{{- '' -}}
+	{%- endif -%}
+{%- endmacro -%}
+
+
+{# --------------------------------------------- CURL ----------------------------------------- -#}
+{#-
+###
+### Get 'command'
+### type: curl
+###
+-#}
+{%- macro tool_curl_get_command(name, items) -%}
+	{{- fn.get_val_by_type(name, items, 'command', 'curl', '') -}}
+{%- endmacro -%}
+
+
+{# --------------------------------------------- APT ------------------------------------------ -#}
+{#-
+###
+### Get 'package'
+### type: apt
+###
+-#}
+{%- macro tool_apt_get_package(name, items) -%}
+	{{- fn.get_val_by_type(name, items, 'package', 'apt', name) -}}
+{%- endmacro -%}
+
+
+
+{##################################################################################################
+# INSTALL LAYER MACROS
+##################################################################################################}
+
+{#-
+###
+### Generate install layers for ALL tools (used in Dockerfile-base.j2 for extra_tools)
+###
+### Iterates over the tools list and emits one RUN layer per tool.
+###
+-#}
 {%- macro install_tool_layers(tools, items) -%}
 {% for tool in tools %}
 {% if get_type(tool, items) in ['npm', 'pip', 'curl', 'custom'] %}
@@ -67,34 +193,79 @@ RUN set -eux; \
 {% if pre in ['None', 'none', 'null', '~'] %}{% set pre = '' %}{% endif %}
 {% if post in ['None', 'none', 'null', '~'] %}{% set post = '' %}{% endif %}
 {% if pre | length %}
-    {{ get_pre(tool, items) }}; \
+	{{ get_pre(tool, items) }}; \
 {% endif %}
 {% if get_type(tool, items) == 'npm' %}
-    npm install -g {{ tool_npm_get_package(tool, items) }}{{ tool_npm_get_version(tool, items) }}; \
-    mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
-    install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
-{% if tool == 'continue' %}
-    ln -sf /opt/nvm/current/bin/cn /opt/agentic-tools/continue/bin/continue; \
-    printf '%s\n' 'enable -n continue 2>/dev/null || true' > /etc/profile.d/continue-cli.sh; \
-{% endif %}
+	npm install -g {{ tool_npm_get_package(tool, items) }}{{ tool_npm_get_version(tool, items) }}; \
+	npm cache clean --force; \
+	mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+	install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
 {% elif get_type(tool, items) == 'pip' %}
-    pipx install {{ tool_pip_get_package(tool, items) }}{{ tool_pip_get_version(tool, items) }}; \
-    mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
-    install -m 0755 /root/.local/bin/{{ get_binary(tool, items) }} /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
-    chmod -R a+rx /root; \
+	pipx install {{ tool_pip_get_package(tool, items) }}{{ tool_pip_get_version(tool, items) }}; \
+	pip cache purge; \
+	mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+	install -m 0755 /root/.local/bin/{{ get_binary(tool, items) }} /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+	chmod -R a+rx /root; \
 {% elif get_type(tool, items) == 'curl' %}
-    {{ tool_curl_get_command(tool, items) | trim | replace('\n', ' ') }}; \
+	{{ tool_curl_get_command(tool, items) | trim | replace('\n', ' ') }}; \
 {% elif get_type(tool, items) == 'custom' %}
-    {{ tool_custom_get_command(tool, items) | trim | replace('\n', ' ') }}; \
+	{{ tool_custom_get_command(tool, items) | trim | replace('\n', ' ') }}; \
 {% endif %}
-    mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
-    if [ ! -x /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }} ] && command -v {{ get_binary(tool, items) }} >/dev/null 2>&1; then \
-        install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
-    fi; \
+	mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+	if [ ! -x /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }} ] && command -v {{ get_binary(tool, items) }} >/dev/null 2>&1; then \
+		install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+	fi; \
 {% if post | length %}
-    {{ get_post(tool, items) }}; \
+	{{ get_post(tool, items) }}; \
 {% endif %}
-    true
+	true
 {% endif %}
 {% endfor %}
+{%- endmacro -%}
+
+
+{#-
+###
+### Generate install layer for a SINGLE tool (used in Dockerfile-agentic.j2)
+###
+### Emits one RUN layer for the specified tool only, matching the per-agent
+### builder stage pattern.
+###
+-#}
+{%- macro install_single_tool_layer(tool, items) -%}
+{% if get_type(tool, items) in ['npm', 'pip', 'curl', 'custom'] %}
+# -------------------- {{ tool }} --------------------
+RUN set -eux; \
+{% set pre = get_pre(tool, items) | trim %}
+{% set post = get_post(tool, items) | trim %}
+{% if pre in ['None', 'none', 'null', '~'] %}{% set pre = '' %}{% endif %}
+{% if post in ['None', 'none', 'null', '~'] %}{% set post = '' %}{% endif %}
+{% if pre | length %}
+	{{ get_pre(tool, items) }}; \
+{% endif %}
+{% if get_type(tool, items) == 'npm' %}
+	npm install -g {{ tool_npm_get_package(tool, items) }}{{ tool_npm_get_version(tool, items) }}; \
+	npm cache clean --force; \
+	mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+	install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+{% elif get_type(tool, items) == 'pip' %}
+	pipx install {{ tool_pip_get_package(tool, items) }}{{ tool_pip_get_version(tool, items) }}; \
+	pip cache purge; \
+	mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+	install -m 0755 /root/.local/bin/{{ get_binary(tool, items) }} /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+	chmod -R a+rx /root; \
+{% elif get_type(tool, items) == 'curl' %}
+	{{ tool_curl_get_command(tool, items) | trim | replace('\n', ' ') }}; \
+{% elif get_type(tool, items) == 'custom' %}
+	{{ tool_custom_get_command(tool, items) | trim | replace('\n', ' ') }}; \
+{% endif %}
+	mkdir -p /opt/agentic-tools/{{ tool }}/bin; \
+	if [ ! -x /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }} ] && command -v {{ get_binary(tool, items) }} >/dev/null 2>&1; then \
+		install -m 0755 "$(command -v {{ get_binary(tool, items) }})" /opt/agentic-tools/{{ tool }}/bin/{{ get_binary(tool, items) }}; \
+	fi; \
+{% if post | length %}
+	{{ get_post(tool, items) }}; \
+{% endif %}
+	true
+{% endif %}
 {%- endmacro -%}

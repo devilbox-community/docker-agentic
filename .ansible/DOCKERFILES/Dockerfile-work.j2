@@ -1,11 +1,14 @@
 # vi: ft=dockerfile
 {{ edit_comment_work }}
+{% import './jinja2/macros-work.j2' as fn %}
 
 # Work stage layers on top of the previously published base image
-# (devilboxcommunity/agentic:<release>-base). Matches the docker-php-fpm
+# (devilboxcommunity/agentic:base). Matches the docker-php-fpm
 # convention where higher-tier stages FROM the lower-tier published image
 # rather than re-implementing it inline.
-FROM {{ docker_user }}/{{ image_name }}:{{ release }}-base AS work
+# The work image adds the build toolchain (gcc, *-dev packages) and extra
+# tools (openspec, speckit), mirroring docker-php-fpm's slim + work stages.
+FROM {{ docker_user }}/{{ image_name }}:base AS work
 
 ###
 ### Labels
@@ -27,12 +30,76 @@ LABEL "org.opencontainers.image.description"="Devilbox container shipping agenti
 
 USER root
 
+###
+### Install build toolchain (gcc, *-dev) and system tools
+###
 RUN set -eux \
     && apt-get update \
     && apt-get install -y --no-install-recommends --no-install-suggests \
         bash-completion \
+        build-essential \
+        cmake \
+        g++ \
+        gcc \
+        libffi-dev \
+        libssl-dev \
+        make \
+        pkg-config \
+        python3-dev \
         sudo \
     && rm -rf /var/lib/apt/lists/*
+
+###
+### Install extra tools (openspec, speckit) from extra_tools/
+###
+{% set build_deps = [] -%}
+{%- for tool in extra_tools -%}
+    {%- for dep in fn.get_build_dep(tool, extra_tools_available) | from_json -%}
+        {%- if dep -%}{{- build_deps.append(dep) -}}{%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+{%- if build_deps %}
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends --no-install-suggests \
+{% for build_dep in build_deps | unique | sort %}
+        {{ build_dep }} \
+{% endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{%- endif %}
+
+{% set apt_tools = [] -%}
+{%- for tool in extra_tools -%}
+    {%- if fn.get_type(tool, extra_tools_available) == 'apt' -%}
+        {{- apt_tools.append(fn.tool_apt_get_package(tool, extra_tools_available)) -}}
+    {%- endif -%}
+{%- endfor -%}
+{%- if apt_tools %}
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends --no-install-suggests \
+{% for apt_tool in apt_tools | unique | sort %}
+        {{ apt_tool }} \
+{% endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{%- endif %}
+
+{{ fn.install_tool_layers(extra_tools, extra_tools_available) }}
+
+# ----- Default-enabled extra tools (symlinked to /usr/local/bin/ at build time): -----
+{% for slug in extra_tools_enabled_by_default %}
+# {{ slug }}  ({{ extra_tools_available[slug].all.binary }})
+{% endfor %}
+# ----- Installed-only extra tools (binary exists, no PATH symlink by default): -----
+{% for slug in extra_tools_installed_only %}
+# {{ slug }}  ({{ extra_tools_available[slug].all.binary }})
+{% endfor %}
+
+RUN set -eux \
+{% for slug in extra_tools_enabled_by_default %}
+    && ln -sfn /opt/agentic-tools/{{ slug }}/bin/{{ extra_tools_available[slug].all.binary }} /usr/local/bin/{{ extra_tools_available[slug].all.binary }} \
+{% endfor %}
+    && true
 
 COPY ./data/bash-devilbox /etc/bash-devilbox
 COPY ./data/sudo-devilbox /etc/sudoers.d/devilbox

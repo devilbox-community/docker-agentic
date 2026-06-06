@@ -5,6 +5,7 @@
 
 edit_comment_base: "# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-base.j2 instead."
 edit_comment_work: "# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-work.j2 instead."
+edit_comment_agentic: "# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-agentic.j2 instead."
 
 docker_user: devilboxcommunity
 image_name: agentic
@@ -14,8 +15,12 @@ node_version: "lts/*"
 bun_version: "latest"
 go_version: "1.23.4"
 
-template_dockerfiles:
+template_dockerfiles_base:
   - src: DOCKERFILES/Dockerfile-base.j2
-    dst: "../Dockerfiles/base/Dockerfile-{{ release }}"
+    dst: "../Dockerfiles/base/Dockerfile"
   - src: DOCKERFILES/Dockerfile-work.j2
-    dst: "../Dockerfiles/work/Dockerfile-{{ release }}"
+    dst: "../Dockerfiles/work/Dockerfile"
+
+template_dockerfiles_agentic:
+  - src: DOCKERFILES/Dockerfile-agentic.j2
+    dst: "../Dockerfiles/agentic/Dockerfile-{{ inventory_hostname }}"

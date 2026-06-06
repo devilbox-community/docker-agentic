@@ -1,0 +1,145 @@
+# vi: ft=dockerfile
+{{ edit_comment_agentic }}
+{% import './jinja2/macros-work.j2' as fn %}
+{% set agentic_tool = inventory_hostname %}
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 1/4: Devilbox Agentic image (BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Installs the specified agent tool in a builder image to keep the final image clean.
+###
+FROM {{ docker_user }}/{{ image_name }}:work AS agentic-builder
+
+USER root
+
+{%
+    set build_deps = fn.get_build_dep(agentic_tool, agentic_tools_available) | from_json
+-%}
+{%- if build_deps -%}
+###
+### Install build_dep for {{ agentic_tool }}
+###
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends --no-install-suggests \
+{% for dep in build_deps | unique | sort %}
+        {{ dep }} \
+{% endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{%- endif %}
+
+###
+### Install agent tool: {{ agentic_tool }}
+###
+{{ fn.install_single_tool_layer(agentic_tool, agentic_tools_available) }}
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 2/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Copies the installed agent tool binaries into a clean final image.
+###
+FROM {{ docker_user }}/{{ image_name }}:work AS {{ agentic_tool }}
+
+USER root
+
+{%
+    set run_deps = fn.get_run_dep(agentic_tool, agentic_tools_available) | from_json
+-%}
+{%- if run_deps -%}
+###
+### Install run_dep for {{ agentic_tool }}
+###
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends --no-install-suggests \
+{% for dep in run_deps | unique | sort %}
+        {{ dep }} \
+{% endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{%- endif %}
+
+###
+### Copy agent tool binaries from builder
+###
+COPY --from=agentic-builder /opt/agentic-tools/{{ agentic_tool }} /opt/agentic-tools/{{ agentic_tool }}
+
+###
+### Default-enabled symlink
+###
+RUN set -eux \
+    && ln -sfn /opt/agentic-tools/{{ agentic_tool }}/bin/{{ agentic_tools_available[agentic_tool].all.binary }} /usr/local/bin/{{ agentic_tools_available[agentic_tool].all.binary }} \
+    && true
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 3/4: Devilbox Agentic image (TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test the installed agent tool binary.
+###
+FROM {{ agentic_tool }} AS agentic-test
+
+USER root
+
+{% if 'check' in agentic_tools_available[agentic_tool] and agentic_tools_available[agentic_tool]['check'] -%}
+# -------------------- {{ agentic_tool }} --------------------
+RUN set -eux \
+    && {{ agentic_tools_available[agentic_tool]['check'] | trim }} \
+    && true
+{%- endif %}
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 4/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Prepare final agentic image (STAGE: {{ agentic_tool }})
+###
+FROM {{ agentic_tool }} AS final
+
+###
+### Labels
+###
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+#LABEL "org.opencontainers.image.created"=""
+#LABEL "org.opencontainers.image.version"=""
+#LABEL "org.opencontainers.image.revision"=""
+LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.vendor"="Devilbox Community"
+LABEL "org.opencontainers.image.licenses"="MIT"
+LABEL "org.opencontainers.image.ref.name"="{{ agentic_tool }}"
+LABEL "org.opencontainers.image.title"="Devilbox Agentic ({{ agentic_tool }})"
+LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: {{ agentic_tool }}"
+
+USER devilbox
+WORKDIR /shared/httpd
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
+CMD ["bash"]

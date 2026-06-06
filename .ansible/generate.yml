@@ -2,7 +2,25 @@
 
 - hosts: all
   gather_facts: False
-  roles:
-    - template
-  tags:
-    - template
+  tasks:
+    - name: generate base/work Dockerfiles
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dst }}"
+        force: True
+        mode: "0644"
+      with_items: "{{ template_dockerfiles_base }}"
+      when: inventory_hostname in ['base', 'work']
+      tags:
+        - template
+
+    - name: generate agentic Dockerfiles
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dst }}"
+        force: True
+        mode: "0644"
+      with_items: "{{ template_dockerfiles_agentic }}"
+      when: inventory_hostname not in ['base', 'work']
+      tags:
+        - template

@@ -55,33 +55,24 @@ RUN set -eux \
     && apt-get install -y --no-install-recommends --no-install-suggests \
         bash \
         bash-completion \
-        build-essential \
         bzip2 \
-        cmake \
         direnv \
         dnsutils \
         fd-find \
-        g++ \
-        gcc \
         git \
         gh \
         htop \
         iputils-ping \
         jq \
-        libffi-dev \
-        libssl-dev \
         locales \
-        make \
         nano \
         netcat-openbsd \
         openssh-client \
         passwd \
         pipx \
-        pkg-config \
         procps \
         psmisc \
         python3 \
-        python3-dev \
         python3-pip \
         python3-venv \
         ripgrep \
@@ -153,55 +144,6 @@ RUN set -eux \
     && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
     && rm -rf /root/.bun \
     && bun --version
-
-{% set build_deps = [] -%}
-{%- for tool in agentic_tools -%}
-    {%- for dep in fn.get_build_dep(tool, agentic_tools_available) | from_json -%}
-        {%- if dep -%}{{- build_deps.append(dep) -}}{%- endif -%}
-    {%- endfor -%}
-{%- endfor -%}
-{%- if build_deps %}
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-{% for build_dep in build_deps | unique | sort %}
-        {{ build_dep }} \
-{% endfor %}
-    && rm -rf /var/lib/apt/lists/*
-{%- endif %}
-
-{% set apt_tools = [] -%}
-{%- for tool in agentic_tools -%}
-    {%- if fn.get_type(tool, agentic_tools_available) == 'apt' -%}
-        {{- apt_tools.append(fn.tool_apt_get_package(tool, agentic_tools_available)) -}}
-    {%- endif -%}
-{%- endfor -%}
-{%- if apt_tools %}
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-{% for apt_tool in apt_tools | unique | sort %}
-        {{ apt_tool }} \
-{% endfor %}
-    && rm -rf /var/lib/apt/lists/*
-{%- endif %}
-
-{{ fn.install_tool_layers(agentic_tools, agentic_tools_available) }}
-
-# ----- Default-enabled tools (symlinked to /usr/local/bin/ at build time): -----
-{% for slug in agentic_tools_enabled_by_default %}
-# {{ slug }}  ({{ agentic_tools_available[slug].all.binary }})
-{% endfor %}
-# ----- Installed-only tools (binary exists, no PATH symlink by default): -----
-{% for slug in agentic_tools_installed_only %}
-# {{ slug }}  ({{ agentic_tools_available[slug].all.binary }})
-{% endfor %}
-
-RUN set -eux \
-{% for slug in agentic_tools_enabled_by_default %}
-    && ln -sfn /opt/agentic-tools/{{ slug }}/bin/{{ agentic_tools_available[slug].all.binary }} /usr/local/bin/{{ agentic_tools_available[slug].all.binary }} \
-{% endfor %}
-    && true
 
 COPY data/docker-entrypoint.sh /docker-entrypoint.sh
 COPY data/docker-entrypoint.d /docker-entrypoint.d
