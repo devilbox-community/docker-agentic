@@ -27,7 +27,7 @@ TAG        = latest
 # Makefile.docker overwrites
 ORG_USER   = devilboxcommunity
 NAME       = Agentic
-VERSION    = stable
+VERSION    = latest
 IMAGE      = $(ORG_USER)/agentic
 #STAGE      = base
 FILE       = Dockerfile

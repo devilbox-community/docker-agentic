@@ -17,9 +17,9 @@ go_version: "1.23.4"
 
 template_dockerfiles_base:
   - src: DOCKERFILES/Dockerfile-base.j2
-    dst: "../Dockerfiles/base/Dockerfile"
+    dst: "../Dockerfiles/base/Dockerfile-{{ release }}"
   - src: DOCKERFILES/Dockerfile-work.j2
-    dst: "../Dockerfiles/work/Dockerfile"
+    dst: "../Dockerfiles/work/Dockerfile-{{ release }}"
 
 template_dockerfiles_agentic:
   - src: DOCKERFILES/Dockerfile-agentic.j2
