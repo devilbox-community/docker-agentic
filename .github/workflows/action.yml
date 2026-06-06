@@ -127,13 +127,46 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (5/6) Push images
+  # (5/6) Build & Test agentic tools (per-agent images)
   # -----------------------------------------------------------------------------------------------
-  # TODO: Add per-agentic-tool build/test/push jobs using
-  # make build STAGE=claude-code (etc.) once the shared
-  # devilbox-community/github-actions configure workflow
-  # emits a matrix_agentic_tools output. The per-agent
-  # Dockerfiles are generated and ready to build.
+  # Each agent tool is its own stage. VERSION in the matrix IS the tool name,
+  # and STAGE is set to match so the Makefile produces the correct tag.
+  build-agentic-tools:
+    needs:
+      - configure
+      - build-base
+      - build-work
+    strategy:
+      matrix:
+        tool: [claude-code, codex, copilot, opencode, pi-coding-agent, reasonix]
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: false
+      upload_artifact: true
+      matrix: ${{ format('[{{"NAME":"Agentic","VERSION":"{0}","FLAVOUR":"default","ARCH":"linux/amd64"}}]', matrix.tool) }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+      stage_prev: work
+
+  test-agentic-tools:
+    needs:
+      - configure
+      - build-agentic-tools
+    strategy:
+      matrix:
+        tool: [claude-code, codex, copilot, opencode, pi-coding-agent, reasonix]
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-test.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ format('[{{"NAME":"Agentic","VERSION":"{0}","FLAVOUR":"default","ARCH":"linux/amd64"}}]', matrix.tool) }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (6/6) Push images
+  # -----------------------------------------------------------------------------------------------
   push-base:
     needs:
       - configure
@@ -162,6 +195,26 @@ jobs:
       matrix: ${{ needs.configure.outputs.matrix_build }}
       artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
       stage: work
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  push-agentic-tools:
+    needs:
+      - configure
+      - test-base
+      - test-work
+      - test-agentic-tools
+    strategy:
+      matrix:
+        tool: [claude-code, codex, copilot, opencode, pi-coding-agent, reasonix]
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-image.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: ${{ format('[{{"NAME":"Agentic","VERSION":"{0}","FLAVOUR":"default","ARCH":"linux/amd64"}}]', matrix.tool) }}
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
     secrets:
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
       dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}

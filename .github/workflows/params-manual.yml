@@ -14,7 +14,7 @@ env:
     [
       {
         "NAME":    "Agentic",
-        "VERSION": ["latest", "stable"],
+        "VERSION": ["stable"],
         "FLAVOUR": ["default"],
         "ARCH":    ["linux/amd64", "linux/arm64"]
       }
