@@ -44,4 +44,4 @@ chmod +x "${bin_path}"
 
 printf 'export BROWSER=%s\n' "${bin_path}" >"${profile_path}"
 
-exit 0
+return 0 2>/dev/null || exit 0
