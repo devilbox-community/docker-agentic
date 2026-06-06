@@ -26,83 +26,51 @@ ARG MY_USER=devilbox
 ARG MY_GROUP=devilbox
 ARG MY_UID=1000
 ARG MY_GID=1000
-ARG GO_VERSION={{ go_version }}
-ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    PATH=/opt/nvm/current/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
+    LC_ALL=C.UTF-8
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+###
+### Essential system packages (git, curl, ca-certificates, tini, sudo, locales)
+###
 RUN set -eux \
     && apt-get update \
     && apt-get install -y --no-install-recommends --no-install-suggests \
+        bash \
         ca-certificates \
         curl \
+        git \
         gnupg \
-        wget \
+        locales \
         lsb-release \
+        passwd \
+        socat \
         sudo \
+        tini \
+        tzdata \
+        wget \
+    && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+    && locale-gen \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+###
+### gh CLI apt repository key (gh itself installed in work, not base)
+###
+RUN set -eux \
     && install -d -m 0755 /etc/apt/keyrings \
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         | gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-        > /etc/apt/sources.list.d/github-cli.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-        bash \
-        bash-completion \
-        bzip2 \
-        direnv \
-        dnsutils \
-        fd-find \
-        git \
-        gh \
-        htop \
-        iputils-ping \
-        jq \
-        locales \
-        nano \
-        netcat-openbsd \
-        openssh-client \
-        passwd \
-        pipx \
-        procps \
-        psmisc \
-        python3 \
-        python3-pip \
-        python3-venv \
-        ripgrep \
-        socat \
-        tini \
-        tmux \
-        tree \
-        tzdata \
-        unzip \
-        vim \
-        xz-utils \
-        yq \
-        zip \
-    && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
-    && locale-gen \
-    && curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+        > /etc/apt/sources.list.d/github-cli.list
 
-RUN set -eux \
-    && case "${TARGETARCH:-amd64}" in \
-        amd64) go_arch="amd64" ;; \
-        arm64) go_arch="arm64" ;; \
-        *) echo "Unsupported TARGETARCH: ${TARGETARCH}"; exit 1 ;; \
-    esac \
-    && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" -o /tmp/go.tgz \
-    && rm -rf /usr/local/go \
-    && tar -C /usr/local -xzf /tmp/go.tgz \
-    && rm -f /tmp/go.tgz
-
+###
+### User and group creation
+###
 RUN set -eux \
     && if getent group "${MY_GID}" >/dev/null; then groupmod -n "${MY_GROUP}" "$(getent group "${MY_GID}" | cut -d: -f1)"; else groupadd -g "${MY_GID}" "${MY_GROUP}"; fi \
     && if getent passwd "${MY_UID}" >/dev/null; then usermod -l "${MY_USER}" -d "/home/${MY_USER}" -m "$(getent passwd "${MY_UID}" | cut -d: -f1)"; else useradd -m -u "${MY_UID}" -g "${MY_GID}" -s /bin/bash "${MY_USER}"; fi \
@@ -111,39 +79,6 @@ RUN set -eux \
     && chmod 0440 "/etc/sudoers.d/${MY_USER}" \
     && mkdir -p /shared/httpd /startup.1.d /startup.2.d \
     && chown -R "${MY_USER}:${MY_GROUP}" /shared /home/${MY_USER}
-
-# Install nvm + Node LTS (replaces nodesource apt nodejs)
-ENV NVM_DIR=/opt/nvm
-ENV NVM_VERSION={{ nvm_version | default('v0.40.4') }}
-ENV NODE_VERSION={{ node_version | default('lts/*') }}
-
-RUN set -eux \
-    && install -d -m 0755 /opt/nvm \
-    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
-       | NVM_DIR=/opt/nvm PROFILE=/dev/null bash \
-    && chown -R devilbox:devilbox /opt/nvm \
-    && su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm install "'"${NODE_VERSION}"'" && nvm alias default "'"${NODE_VERSION}"'"' devilbox \
-    && NODE_DIR="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && ln -sfn "$(dirname ${NODE_DIR})" /opt/nvm/current \
-    && for bin in node npm npx corepack; do \
-         [ -f "${NODE_DIR}/${bin}" ] && ln -sf "${NODE_DIR}/${bin}" "/usr/local/bin/${bin}"; \
-       done \
-    && /usr/local/bin/corepack enable \
-    && node --version && npm --version
-
-RUN set -eux \
-    && NODE_BIN="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && echo "export PATH=\"${NODE_BIN}:\$PATH\"" > /etc/profile.d/nvm-path.sh \
-    && echo "PATH=\"${NODE_BIN}:${PATH}\"" >> /etc/environment
-
-# Install bun
-ENV BUN_VERSION={{ bun_version | default('latest') }}
-RUN set -eux \
-    && curl -fsSL https://bun.sh/install | bash \
-    && install -m 0755 /root/.bun/bin/bun /usr/local/bin/bun \
-    && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
-    && rm -rf /root/.bun \
-    && bun --version
 
 COPY data/docker-entrypoint.sh /docker-entrypoint.sh
 COPY data/docker-entrypoint.d /docker-entrypoint.d
@@ -157,9 +92,6 @@ RUN set -eux \
     && chown -R "${MY_USER}:${MY_GROUP}" /docker-entrypoint.d /startup.1.d /startup.2.d \
     && install -d -o "${MY_USER}" -g "${MY_GROUP}" /opt/agentic-tools \
     && install -d -m 1777 /var/lock
-
-USER devilbox
-WORKDIR /shared/httpd
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
 CMD ["bash"]
