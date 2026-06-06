@@ -19,6 +19,8 @@ on:
       - 'Dockerfiles/**'
       - 'bin/**'
       - 'Dockerfiles/base/data/**'
+      - 'agentic_tools/**'
+      - 'extra_tools/**'
       - 'tests/**'
       - 'Makefile'
       - '!**.md'
@@ -31,6 +33,8 @@ on:
       - 'Dockerfiles/**'
       - 'bin/**'
       - 'Dockerfiles/base/data/**'
+      - 'agentic_tools/**'
+      - 'extra_tools/**'
       - 'tests/**'
       - 'Makefile'
       - '!**.md'
@@ -56,7 +60,7 @@ jobs:
     uses: devilbox-community/github-actions/.github/workflows/docker-multistage-configure.yml@master
     with:
       enabled: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' }}
-      can_deploy: ${{ (github.repository == 'devilbox-community/docker-agentic') && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/release-')) }}
+      can_deploy: ${{ (github.repository == 'devilbox-community/docker-agentic') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/release-')) }}
       versions: ${{ needs.params.outputs.versions }}
       refs: ${{ needs.params.outputs.refs }}
     secrets:
@@ -125,6 +129,11 @@ jobs:
   # -----------------------------------------------------------------------------------------------
   # (5/6) Push images
   # -----------------------------------------------------------------------------------------------
+  # TODO: Add per-agentic-tool build/test/push jobs using
+  # make build STAGE=claude-code (etc.) once the shared
+  # devilbox-community/github-actions configure workflow
+  # emits a matrix_agentic_tools output. The per-agent
+  # Dockerfiles are generated and ready to build.
   push-base:
     needs:
       - configure

@@ -21,7 +21,7 @@ env:
     ]
   REFS: >
     {
-        "DEFAULT_BRANCH": "master",
+        "DEFAULT_BRANCH": "main",
         "BRANCHES": "",
         "NUM_LATEST_TAGS": 0
     }

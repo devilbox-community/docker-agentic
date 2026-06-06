@@ -38,9 +38,9 @@ on:
         default: '"linux/amd64", "linux/arm64"'
         type: string
       default_branch:
-        description: 'The default branch of this repository to fetch latest tags from. Default: master'
+        description: 'The default branch of this repository to fetch latest tags from. Default: main'
         required: false
-        default: 'master'
+        default: .main.
         type: string
       tag:
         description: 'The name for the "latest" Docker tag (default: latest).'

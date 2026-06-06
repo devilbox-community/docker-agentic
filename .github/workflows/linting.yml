@@ -42,3 +42,7 @@ jobs:
       - name: Lint Changelog
         run: |
           make lint-changelog
+
+      - name: Lint Ansible (generation is current)
+        run: |
+          make lint-ansible
