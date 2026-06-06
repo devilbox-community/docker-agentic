@@ -114,7 +114,6 @@ LABEL "org.opencontainers.image.ref.name"="reasonix"
 LABEL "org.opencontainers.image.title"="Devilbox Agentic (reasonix)"
 LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: reasonix"
 
-USER devilbox
 WORKDIR /shared/httpd
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]

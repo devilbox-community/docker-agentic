@@ -138,7 +138,6 @@ LABEL "org.opencontainers.image.ref.name"="{{ agentic_tool }}"
 LABEL "org.opencontainers.image.title"="Devilbox Agentic ({{ agentic_tool }})"
 LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: {{ agentic_tool }}"
 
-USER devilbox
 WORKDIR /shared/httpd
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]

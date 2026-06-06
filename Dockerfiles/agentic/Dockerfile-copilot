@@ -111,7 +111,6 @@ LABEL "org.opencontainers.image.ref.name"="copilot"
 LABEL "org.opencontainers.image.title"="Devilbox Agentic (copilot)"
 LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: copilot"
 
-USER devilbox
 WORKDIR /shared/httpd
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
