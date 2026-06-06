@@ -7,4 +7,5 @@ __pycache__/
 !.gitkeep
 .gitnexus
 .claude/
+.omc/
 .hermes/artifacts/*
