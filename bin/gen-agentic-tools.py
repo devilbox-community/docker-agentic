@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Generate Ansible group_vars from agentic tools (installed software) definition."""
+"""Generate Ansible group_vars from agentic tools and extra tools definitions.
+
+Scans agentic_tools/ (per-agent harness CLIs) and extra_tools/ (spec/workflow
+utilities), resolves dependency trees, and writes the corresponding Ansible
+group_vars files:
+
+    agentic_tools/  →  .ansible/group_vars/all/agentic.yml   (per-agent images)
+    extra_tools/    →  .ansible/group_vars/all/work.yml       (built into base)
+"""
 import os
 import sys
 from collections import OrderedDict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 try:
     import yaml  # type: ignore[import]
-except ModuleNotFoundError:  # pragma: no cover - host bootstrap may not have PyYAML
+except ModuleNotFoundError:  # pragma: no cover
     yaml = None
 
 
@@ -18,22 +26,14 @@ except ModuleNotFoundError:  # pragma: no cover - host bootstrap may not have Py
 
 SCRIPT_PATH = str(os.path.dirname(os.path.realpath(__file__)))
 REPOSITORY_PATH = str(os.path.dirname(SCRIPT_PATH))
-AGENTIC_TOOL_PATH = os.environ.get("AGENTIC_TOOL_PATH", str(os.path.join(REPOSITORY_PATH, "agentic_tools")))
+AGENTIC_TOOL_PATH = str(os.path.join(REPOSITORY_PATH, "agentic_tools"))
+EXTRA_TOOL_PATH = str(os.path.join(REPOSITORY_PATH, "extra_tools"))
 GROUP_VARS_PATH = str(os.path.join(REPOSITORY_PATH, ".ansible", "group_vars", "all"))
-
-MANAGED_GROUP_VARS = [
-    "agentic_tools",
-    "agentic_tools_enabled",
-    "agentic_tools_enabled_by_default",
-    "agentic_tools_installed_only",
-    "agentic_tools_available",
-]
 
 
 # --------------------------------------------------------------------------------------------------
 # HELPER FUNCTIONS
 # --------------------------------------------------------------------------------------------------
-
 
 def get_el_by_name(items: List[Dict[str, Any]], name: str) -> Dict[str, Any]:
     """Returns an element from a dict list by its 'name' key with given value."""
@@ -82,23 +82,6 @@ def load_yaml(path: str) -> Dict[str, Any]:
         return data or {}
 
 
-def dump_yaml(path: str, data: Dict[str, Any]) -> None:
-    """Dump dict() to yaml file."""
-    if yaml is None:
-        with open(path, "w", encoding="utf8") as fp:
-            fp.write("---\n")
-            for key, value in data.items():
-                if isinstance(value, list):
-                    fp.write(key + ":\n")
-                    for item in value:
-                        fp.write("  - " + str(item) + "\n")
-                else:
-                    fp.write(key + ": " + str(value) + "\n")
-        return
-    with open(path, "w", encoding="utf8") as fp:
-        yaml.safe_dump(data, fp, default_flow_style=False, sort_keys=False)
-
-
 def load_yaml_raw(path: str, indent: int = 0) -> str:
     """Load and returns yaml file as str."""
     lines = []
@@ -117,7 +100,7 @@ def load_yaml_raw(path: str, indent: int = 0) -> str:
     return "".join(lines)
 
 
-def load_unmanaged_group_vars_raw(path: str) -> str:
+def load_unmanaged_group_vars_raw(path: str, managed_keys: List[str]) -> str:
     """Load and returns unmanaged top-level yaml blocks as str."""
     if not os.path.exists(path):
         return ""
@@ -130,44 +113,45 @@ def load_unmanaged_group_vars_raw(path: str) -> str:
             if line.startswith("---") or line.startswith("#") or not line.strip():
                 continue
             if not line.startswith(" ") and ":" in line:
-                if current and current_key not in MANAGED_GROUP_VARS:
+                if current and current_key not in managed_keys:
                     blocks.extend(current)
                 current_key = line.split(":", 1)[0]
                 current = [line]
             elif current:
                 current.append(line)
-        if current and current_key not in MANAGED_GROUP_VARS:
+        if current and current_key not in managed_keys:
             blocks.extend(current)
     return "".join(blocks)
 
 
 # --------------------------------------------------------------------------------------------------
-# TOOL FUNCTIONS
+# TOOL DISCOVERY FUNCTIONS
 # --------------------------------------------------------------------------------------------------
 
 
-def get_tool_options(tool_dirname: str) -> Dict[str, Any]:
-    """Returns yaml dict options of an agentic tool given by its absolute file path."""
-    return load_yaml(os.path.join(AGENTIC_TOOL_PATH, tool_dirname, "options.yml"))
+def get_tool_options(tool_path: str, tool_dirname: str) -> Dict[str, Any]:
+    """Returns yaml dict options of a tool given by its directory path and name."""
+    return load_yaml(os.path.join(tool_path, tool_dirname, "options.yml"))
 
 
-def get_tool_install(tool_dirname: str) -> Dict[str, Any]:
-    """Returns yaml dict install configuration of an agentic tool given by its absolute file path."""
-    return load_yaml(os.path.join(AGENTIC_TOOL_PATH, tool_dirname, "install.yml"))
+def get_tool_install(tool_path: str, tool_dirname: str) -> Dict[str, Any]:
+    """Returns yaml dict install configuration of a tool."""
+    return load_yaml(os.path.join(tool_path, tool_dirname, "install.yml"))
 
 
-def get_tools(selected_tools: List[str], ignore_dependencies: bool) -> List[Dict[str, Any]]:
-    """Returns a list of agentic tool directory names.
+def get_tools(tool_path: str, selected_tools: List[str], ignore_dependencies: bool) -> List[Dict[str, Any]]:
+    """Returns a list of tool directory names from a given path.
 
     Args:
+        tool_path: Absolute path to scan (e.g. agentic_tools/ or extra_tools/).
         selected_tools: If not empty, only gather specified tools (and its dependencies).
         ignore_dependencies: If true, all dependent tools will be ignored.
     """
     tools = []
-    with os.scandir(AGENTIC_TOOL_PATH) as it:
+    with os.scandir(tool_path) as it:
         for item in it:
             if not item.name.startswith(".") and item.is_dir():
-                data = get_tool_options(item.name)
+                data = get_tool_options(tool_path, item.name)
                 tools.append(
                     {
                         "dir": item.name,
@@ -267,14 +251,37 @@ def print_dependency_tree(tree: Dict[str, Any], lvl: int = 0) -> None:
 # --------------------------------------------------------------------------------------------------
 
 
-def write_group_vars(tools: List[str]) -> None:
-    """Write work.yml group_vars for ansible."""
+def write_group_vars(
+    tools: List[str],
+    tool_path: str,
+    group_vars_file: str,
+    managed_keys: List[str],
+    prefix: str,
+) -> None:
+    """Write a group_vars YAML file for ansible.
+
+    Args:
+        tools: Ordered list of tool directory names.
+        tool_path: Path to the tool definitions directory.
+        group_vars_file: Output filename (relative to GROUP_VARS_PATH).
+        managed_keys: Top-level keys managed by this generator.
+        prefix: Variable prefix (e.g. 'agentic_tools' or 'extra_tools').
+    """
     os.makedirs(GROUP_VARS_PATH, exist_ok=True)
-    group_vars = os.path.join(GROUP_VARS_PATH, "work.yml")
+    group_vars = os.path.join(GROUP_VARS_PATH, group_vars_file)
     existing = load_yaml(group_vars) if yaml is not None and os.path.exists(group_vars) else {}
-    unmanaged = {key: value for key, value in existing.items() if key not in MANAGED_GROUP_VARS}
-    unmanaged_raw = load_unmanaged_group_vars_raw(group_vars) if yaml is None else ""
-    enabled_by_default = [tool for tool in tools if get_tool_options(tool).get("default_enabled", False) is True]
+    unmanaged = {key: value for key, value in existing.items() if key not in managed_keys}
+    unmanaged_raw = load_unmanaged_group_vars_raw(group_vars, managed_keys) if yaml is None else ""
+
+    enabled_var = prefix + "_enabled"
+    enabled_by_default_var = prefix + "_enabled_by_default"
+    installed_only_var = prefix + "_installed_only"
+    available_var = prefix + "_available"
+
+    enabled_by_default = [
+        tool for tool in tools
+        if get_tool_options(tool_path, tool).get("default_enabled", False) is True
+    ]
     installed_only = [tool for tool in tools if tool not in enabled_by_default]
 
     with open(group_vars, "w", encoding="utf8") as fp:
@@ -293,39 +300,39 @@ def write_group_vars(tools: List[str]) -> None:
             fp.write("\n")
 
         # Enabled tools
-        fp.write("# The following specifies the order in which agentic tools are being installed.\n")
-        fp.write("agentic_tools:\n")
+        fp.write(f"# The following specifies the order in which {prefix} are being installed.\n")
+        fp.write(prefix + ":\n")
         for tool in tools:
             fp.write("  - " + tool + "\n")
         fp.write("\n")
 
         # Default-enabled tools
-        fp.write("# The following specifies which agentic tools are linked by default.\n")
+        fp.write(f"# The following specifies which {prefix} are linked by default.\n")
         if enabled_by_default:
-            fp.write("agentic_tools_enabled_by_default:\n")
+            fp.write(enabled_by_default_var + ":\n")
             for tool in enabled_by_default:
                 fp.write("  - " + tool + "\n")
         else:
-            fp.write("agentic_tools_enabled_by_default: []\n")
+            fp.write(enabled_by_default_var + ": []\n")
         fp.write("\n")
 
         # Installed-only tools
         if installed_only:
-            fp.write("agentic_tools_installed_only:\n")
+            fp.write(installed_only_var + ":\n")
             for tool in installed_only:
                 fp.write("  - " + tool + "\n")
         else:
-            fp.write("agentic_tools_installed_only: []\n")
+            fp.write(installed_only_var + ": []\n")
         fp.write("\n")
 
         # Build defines tools
-        fp.write("# The following specifies how agentic tools are being installed.\n")
-        fp.write("agentic_tools_available:\n")
+        fp.write(f"# The following specifies how {prefix} are being installed.\n")
+        fp.write(available_var + ":\n")
         for tool in tools:
-            opts = get_tool_options(tool)
+            opts = get_tool_options(tool_path, tool)
             fp.write("  " + tool + ":\n")
             fp.write("    disabled: [" + ", ".join(str(x) for x in opts.get("exclude", [])) + "]\n")
-            fp.write(load_yaml_raw(os.path.join(AGENTIC_TOOL_PATH, tool, "install.yml"), 4))
+            fp.write(load_yaml_raw(os.path.join(tool_path, tool, "install.yml"), 4))
 
 
 # --------------------------------------------------------------------------------------------------
@@ -333,30 +340,21 @@ def write_group_vars(tools: List[str]) -> None:
 # --------------------------------------------------------------------------------------------------
 def print_help() -> None:
     """Show help screen."""
-    print("Usage:", os.path.basename(__file__), "[options] [AGENTIC-TOOL]...")
+    print("Usage:", os.path.basename(__file__), "[options] [TOOL]...")
     print("      ", os.path.basename(__file__), "-h, --help")
     print()
-    print("This script will generate the Ansible group_vars file: .ansible/group_vars/all/work.yml")
-    print("based on all the tools found in agentic_tools/ directory.")
+    print("This script generates Ansible group_vars files:")
+    print("  .ansible/group_vars/all/agentic.yml  (from agentic_tools/)")
+    print("  .ansible/group_vars/all/work.yml     (from extra_tools/)")
     print()
     print("Positional arguments:")
-    print("    [AGENTIC-TOOL]  Specify None, one or more agentic tools to generate group_vars for.")
-    print("                    When no agentic tool is specified (argument is omitted), group_vars")
-    print("                    for all tools will be genrated.")
-    print("                    When one or more agentic tool are specified, only group_vars for")
-    print("                    these tools will be created.")
-    print("                        only be generated for this single tool (and its dependencies).")
-    print("                        This is useful if you want to test new tools and not build all")
-    print("                        previous tools in the Dockerfile.")
-    print()
-    print("                        Note: You still need to generate the Dockerfiles via Ansible for")
-    print("                              the changes to take effect, before building the image.")
+    print("    [TOOL]  Specify one or more tools to generate group_vars for.")
+    print("            When no tool is specified, group_vars for all tools")
+    print("            in both directories will be generated.")
+    print("            Tools are matched against both agentic_tools/ and extra_tools/.")
     print("Optional arguments:")
-    print("    -i              Ignore dependent tools.")
-    print("                    By default each tool is checked for dependencies of other")
-    print("                    tools.")
-    print("                    By specifying -i, those dependent tools are not beeing added to")
-    print("                    ansible group_vars. Use at your own risk.")
+    print("    -i      Ignore dependent tools.")
+    print("    --help  Show this help.")
 
 
 def main(argv: List[str]) -> None:
@@ -378,38 +376,63 @@ def main(argv: List[str]) -> None:
             else:
                 selected_tools.append(arg)
 
-    # Get tools in order of dependencies
-    tools = get_tools(selected_tools, ignore_dependencies)
-    tool_tree = get_tool_dependency_tree(tools)
-    names = resolve_tool_dependency_tree(tool_tree)
+    # ----------------------------------------------------------------------
+    # Agentic Tools (per-agent harness CLIs) → agentic.yml
+    # ----------------------------------------------------------------------
+    agentic_tools = get_tools(AGENTIC_TOOL_PATH, selected_tools, ignore_dependencies)
+    agentic_tree = get_tool_dependency_tree(agentic_tools)
+    agentic_names = resolve_tool_dependency_tree(agentic_tree)
 
     print("#", "-" * 78)
-    print("# Paths")
+    print("# Agentic Tools (per-agent harness)")
     print("#", "-" * 78)
-    print("Repository:    ", REPOSITORY_PATH)
-    print("Agentic Tools: ", AGENTIC_TOOL_PATH)
-    print("Group Vars:    ", GROUP_VARS_PATH)
+    print("Path:   ", AGENTIC_TOOL_PATH)
+    print()
+    print_tools(agentic_tools)
+    print()
+    print("Dependency Tree:")
+    print_dependency_tree(agentic_tree)
+    print()
+    print("Build order:\n" + "\n".join(agentic_names))
     print()
 
+    write_group_vars(
+        agentic_names,
+        AGENTIC_TOOL_PATH,
+        "agentic.yml",
+        ["agentic_tools", "agentic_tools_enabled", "agentic_tools_enabled_by_default",
+         "agentic_tools_installed_only", "agentic_tools_available"],
+        "agentic_tools",
+    )
+
+    # ----------------------------------------------------------------------
+    # Extra Tools (spec/workflow utilities) → work.yml
+    # ----------------------------------------------------------------------
+    extra_tools = get_tools(EXTRA_TOOL_PATH, selected_tools, ignore_dependencies)
+    extra_tree = get_tool_dependency_tree(extra_tools)
+    extra_names = resolve_tool_dependency_tree(extra_tree)
+
     print("#", "-" * 78)
-    print("# Tool directories")
+    print("# Extra Tools (spec/workflow, built into base)")
     print("#", "-" * 78)
-    print_tools(tools)
+    print("Path:   ", EXTRA_TOOL_PATH)
+    print()
+    print_tools(extra_tools)
+    print()
+    print("Dependency Tree:")
+    print_dependency_tree(extra_tree)
+    print()
+    print("Build order:\n" + "\n".join(extra_names))
     print()
 
-    print("#", "-" * 78)
-    print("# Build Dependency Tree")
-    print("#", "-" * 78)
-    print_dependency_tree(tool_tree)
-    print()
-
-    print("#", "-" * 78)
-    print("# Build order")
-    print("#", "-" * 78)
-    print("\n".join(names))
-
-    # Create group_vars file work.yml
-    write_group_vars(names)
+    write_group_vars(
+        extra_names,
+        EXTRA_TOOL_PATH,
+        "work.yml",
+        ["extra_tools", "extra_tools_enabled", "extra_tools_enabled_by_default",
+         "extra_tools_installed_only", "extra_tools_available"],
+        "extra_tools",
+    )
 
 
 if __name__ == "__main__":
