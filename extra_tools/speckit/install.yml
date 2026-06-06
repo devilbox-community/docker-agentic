@@ -1,0 +1,13 @@
+---
+
+check: specify --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: pip
+  package: specify-cli
+  binary: specify
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

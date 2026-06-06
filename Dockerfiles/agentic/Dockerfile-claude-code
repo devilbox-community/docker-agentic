@@ -1,0 +1,118 @@
+# vi: ft=dockerfile
+# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-agentic.j2 instead.
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 1/4: Devilbox Agentic image (BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Installs the specified agent tool in a builder image to keep the final image clean.
+###
+FROM devilboxcommunity/agentic:work AS agentic-builder
+
+USER root
+
+
+###
+### Install agent tool: claude-code
+###
+# -------------------- claude-code --------------------
+RUN set -eux; \
+	mkdir -p /opt/agentic-tools/claude-code/bin; if curl -fsI https://claude.ai/install.sh >/dev/null 2>&1; then   curl -fsSL https://claude.ai/install.sh | bash;   for p in $(command -v claude 2>/dev/null) /root/.local/bin/claude /root/.claude/local/claude /usr/local/bin/claude; do     [ -x "$p" ] && install -D -m 0755 "$p" /opt/agentic-tools/claude-code/bin/claude && break;   done; else   echo 'WARN: claude-code primary probe failed; skipping (no npm fallback per user mandate)' >&2; fi; \
+	mkdir -p /opt/agentic-tools/claude-code/bin; \
+	if [ ! -x /opt/agentic-tools/claude-code/bin/claude ] && command -v claude >/dev/null 2>&1; then \
+		install -m 0755 "$(command -v claude)" /opt/agentic-tools/claude-code/bin/claude; \
+	fi; \
+	true
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 2/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Copies the installed agent tool binaries into a clean final image.
+###
+FROM devilboxcommunity/agentic:work AS claude-code
+
+USER root
+
+
+###
+### Copy agent tool binaries from builder
+###
+COPY --from=agentic-builder /opt/agentic-tools/claude-code /opt/agentic-tools/claude-code
+
+###
+### Default-enabled symlink
+###
+RUN set -eux \
+    && ln -sfn /opt/agentic-tools/claude-code/bin/claude /usr/local/bin/claude \
+    && true
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 3/4: Devilbox Agentic image (TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test the installed agent tool binary.
+###
+FROM claude-code AS agentic-test
+
+USER root
+
+# -------------------- claude-code --------------------
+RUN set -eux \
+    && claude --version 2>&1 | grep -qE '[0-9]+\.[0-9]+' \
+    && true
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 4/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Prepare final agentic image (STAGE: claude-code)
+###
+FROM claude-code AS final
+
+###
+### Labels
+###
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+#LABEL "org.opencontainers.image.created"=""
+#LABEL "org.opencontainers.image.version"=""
+#LABEL "org.opencontainers.image.revision"=""
+LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.vendor"="Devilbox Community"
+LABEL "org.opencontainers.image.licenses"="MIT"
+LABEL "org.opencontainers.image.ref.name"="claude-code"
+LABEL "org.opencontainers.image.title"="Devilbox Agentic (claude-code)"
+LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: claude-code"
+
+USER devilbox
+WORKDIR /shared/httpd
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
+CMD ["bash"]

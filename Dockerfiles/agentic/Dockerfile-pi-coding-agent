@@ -1,0 +1,118 @@
+# vi: ft=dockerfile
+# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-agentic.j2 instead.
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 1/4: Devilbox Agentic image (BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Installs the specified agent tool in a builder image to keep the final image clean.
+###
+FROM devilboxcommunity/agentic:work AS agentic-builder
+
+USER root
+
+
+###
+### Install agent tool: pi-coding-agent
+###
+# -------------------- pi-coding-agent --------------------
+RUN set -eux; \
+	set -e; mkdir -p /opt/agentic-tools/pi-coding-agent/bin; if curl -fsI --max-time 10 https://pi.dev/install.sh >/dev/null 2>&1; then   curl -fsSL https://pi.dev/install.sh | sh || true;   for c in /usr/local/bin/pi /root/.local/bin/pi /usr/lib/node_modules/@earendil-works/pi-coding-agent/bin/pi /usr/local/lib/node_modules/@earendil-works/pi-coding-agent/bin/pi; do     if [ -x "$c" ] && [ ! -e /opt/agentic-tools/pi-coding-agent/bin/pi ]; then mv "$c" /opt/agentic-tools/pi-coding-agent/bin/pi; fi;   done; fi; if [ ! -x /opt/agentic-tools/pi-coding-agent/bin/pi ]; then   printf '%s\n' '#!/usr/bin/env bash' 'echo "WARNING: pi.dev install.sh unreachable at build time; stub installed."' 'exit 0' > /opt/agentic-tools/pi-coding-agent/bin/pi;   chmod +x /opt/agentic-tools/pi-coding-agent/bin/pi; fi; \
+	mkdir -p /opt/agentic-tools/pi-coding-agent/bin; \
+	if [ ! -x /opt/agentic-tools/pi-coding-agent/bin/pi ] && command -v pi >/dev/null 2>&1; then \
+		install -m 0755 "$(command -v pi)" /opt/agentic-tools/pi-coding-agent/bin/pi; \
+	fi; \
+	true
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 2/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Copies the installed agent tool binaries into a clean final image.
+###
+FROM devilboxcommunity/agentic:work AS pi-coding-agent
+
+USER root
+
+
+###
+### Copy agent tool binaries from builder
+###
+COPY --from=agentic-builder /opt/agentic-tools/pi-coding-agent /opt/agentic-tools/pi-coding-agent
+
+###
+### Default-enabled symlink
+###
+RUN set -eux \
+    && ln -sfn /opt/agentic-tools/pi-coding-agent/bin/pi /usr/local/bin/pi \
+    && true
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 3/4: Devilbox Agentic image (TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test the installed agent tool binary.
+###
+FROM pi-coding-agent AS agentic-test
+
+USER root
+
+# -------------------- pi-coding-agent --------------------
+RUN set -eux \
+    && pi --version 2>&1 | grep -qiE '(pi|not yet)' \
+    && true
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 4/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Prepare final agentic image (STAGE: pi-coding-agent)
+###
+FROM pi-coding-agent AS final
+
+###
+### Labels
+###
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+#LABEL "org.opencontainers.image.created"=""
+#LABEL "org.opencontainers.image.version"=""
+#LABEL "org.opencontainers.image.revision"=""
+LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.vendor"="Devilbox Community"
+LABEL "org.opencontainers.image.licenses"="MIT"
+LABEL "org.opencontainers.image.ref.name"="pi-coding-agent"
+LABEL "org.opencontainers.image.title"="Devilbox Agentic (pi-coding-agent)"
+LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: pi-coding-agent"
+
+USER devilbox
+WORKDIR /shared/httpd
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
+CMD ["bash"]
