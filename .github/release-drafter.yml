@@ -2,6 +2,10 @@
 name-template: '$RESOLVED_VERSION 🌈'
 tag-template: '$RESOLVED_VERSION'
 version-template: '$MAJOR.$MINOR'
+
+# The release body is overwritten by the workflow's commit-based changelog
+# (generated from conventional commits via release-please + github-script).
+# These categories serve as a fallback and power the autolabeler.
 categories:
   - title: '🚀 Features'
     labels:
@@ -12,21 +16,51 @@ categories:
       - 'fix'
       - 'bugfix'
       - 'bug'
+  - title: '📚 Documentation'
+    labels:
+      - 'documentation'
+  - title: '💥 Breaking Changes'
+    labels:
+      - 'breaking'
   - title: '🧰 Maintenance'
     label: 'chore'
+
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
+
 version-resolver:
   major:
     labels:
-      - 'major'
+      - 'breaking'
   minor:
     labels:
-      - 'minor'
+      - 'feature'
   patch:
     labels:
-      - 'patch'
+      - 'fix'
+      - 'chore'
+      - 'documentation'
   default: minor
+
+autolabeler:
+  - label: 'feature'
+    title:
+      - '/^feat(\(.*\))?:/'
+  - label: 'fix'
+    title:
+      - '/^fix(\(.*\))?:/'
+  - label: 'chore'
+    title:
+      - '/^chore(\(.*\))?:/'
+      - '/^refactor(\(.*\))?:/'
+  - label: 'documentation'
+    title:
+      - '/^docs(\(.*\))?:/'
+  - label: 'breaking'
+    title:
+      - '/^feat(\(.*\))?!:/'
+      - '/BREAKING CHANGE/'
+
 template: |
   ## Changes
 
