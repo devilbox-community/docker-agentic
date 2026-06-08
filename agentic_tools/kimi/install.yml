@@ -1,0 +1,18 @@
+---
+
+check: kimi --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/kimi;
+    KIMI_INSTALL_DIR=/opt/agentic-tools/kimi KIMI_VERSION=1.46.0 KIMI_NO_MODIFY_PATH=1 curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash;
+    install -D -m 0755 /root/.kimi-code/bin/kimi /opt/agentic-tools/kimi/bin/kimi;
+    test -x /opt/agentic-tools/kimi/bin/kimi
+  package: "@moonshot-ai/kimi-code"
+  binary: kimi
+  version: 1.46.0
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

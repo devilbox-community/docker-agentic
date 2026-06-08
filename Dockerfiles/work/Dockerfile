@@ -191,6 +191,19 @@ RUN set -eux \
     && chmod 0440 /etc/sudoers.d/devilbox \
     && echo ". /etc/bash-devilbox" >> /root/.bashrc \
     && echo ". /etc/bash-devilbox" >> /home/devilbox/.bashrc \
+    && { \
+        echo; \
+        echo "# [Devilbox] Ensure go, node, npm, npx, bun are in PATH"; \
+        echo 'PATH="/usr/local/go/bin:${PATH}"'; \
+        echo 'PATH="/opt/nvm/current/bin:${PATH}"'; \
+        echo 'PATH="${HOME}/go/bin:${PATH}"'; \
+        echo "export PATH"; \
+        echo; \
+        echo "# [Devilbox] Ensure to load nvm"; \
+        echo 'export NVM_DIR="/opt/nvm"'; \
+        echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm'; \
+        echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion'; \
+    } | tee -a /home/devilbox/.bashrc /root/.bashrc \
     && chown devilbox:devilbox /home/devilbox/.bashrc
 
 WORKDIR /shared/httpd

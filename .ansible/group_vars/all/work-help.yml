@@ -1,7 +1,244 @@
 ---
 ###################################################################################################
-# Docker: work helper definitions
+# Docker: work (docker stage: help)
 ###################################################################################################
 
-agentic_help_software_enabled: []
-agentic_help_software_available: {}
+#
+# This file holds definition for all devilboxcommunity/agentic:work images
+#
+
+
+# -------------------------------------------------------------------------------------------------
+# Global variables
+# -------------------------------------------------------------------------------------------------
+nvm_home: /opt/nvm
+go_home: /usr/local/go
+node_version: --lts
+
+
+# -------------------------------------------------------------------------------------------------
+# Software to install (in defined order)
+# -------------------------------------------------------------------------------------------------
+help_software_enabled:
+  - comfort-tools
+  - build-toolchain
+  - python-pip
+  - go
+  - nvm
+  - bun
+
+
+## -------------------------------------------------------------------------------------------------
+## Software definition
+## -------------------------------------------------------------------------------------------------
+#
+# all: is generic version of defines
+# disabled: [optional] Array of items for which to disable this module
+# check:    [optional] Include a check command to test if it was installed successfully
+#
+# all:
+#   type:      Type of installation (custom, apt)
+#   pre:       [optional] Run command before 'command:' statement
+#   command:   Command to execute
+#   post:      [optional] Run command after 'command:' statement
+#   build_dep: [optional] Build dependencies required for installation
+#   run_dep:   [optional] Runtime dependencies required
+#
+help_software_available:
+
+  ###
+  ### Comfort Tools
+  ###
+  comfort-tools:
+    disabled: []
+    check: |
+      bash --version \
+      && jq --version \
+      && yq --version \
+      && rg --version \
+      && fd --version \
+      && gh --version \
+      && tmux -V \
+      && vim --version \
+      && python3 --version
+    all:
+      type: custom
+      pre: |
+        apt-get update
+      command: |
+        apt-get install -y --no-install-recommends --no-install-suggests \
+          bash-completion \
+          bzip2 \
+          direnv \
+          dnsutils \
+          fd-find \
+          gh \
+          htop \
+          iputils-ping \
+          jq \
+          nano \
+          netcat-openbsd \
+          openssh-client \
+          pipx \
+          procps \
+          psmisc \
+          python3 \
+          python3-pip \
+          python3-venv \
+          ripgrep \
+          socat \
+          tmux \
+          tree \
+          unzip \
+          vim \
+          xz-utils \
+          yq \
+          zip \
+      post: |
+        rm -rf /var/lib/apt/lists/* \
+        && apt-get clean
+      build_dep: []
+      run_dep: []
+
+  ###
+  ### Build Toolchain
+  ###
+  build-toolchain:
+    disabled: []
+    check: |
+      gcc --version \
+      && g++ --version \
+      && cmake --version \
+      && make --version \
+      && pkg-config --version
+    all:
+      type: custom
+      pre: |
+        apt-get update
+      command: |
+        apt-get install -y --no-install-recommends --no-install-suggests \
+          build-essential \
+          cmake \
+          g++ \
+          gcc \
+          libffi-dev \
+          libssl-dev \
+          make \
+          pkg-config \
+          python3-dev \
+      post: |
+        rm -rf /var/lib/apt/lists/*
+      build_dep: []
+      run_dep: []
+
+  ###
+  ### Python pip + pipx + uv
+  ###
+  python-pip:
+    disabled: []
+    check: |
+      pip --version \
+      && pipx --version \
+      && uv --version
+    all:
+      type: custom
+      pre: |
+        rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
+      command: |
+        curl -sS -L --fail https://bootstrap.pypa.io/get-pip.py | python3 \
+      post: |
+        curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh \
+        && /bin/ls -1 /usr/local/lib/ | grep ^python | while read -r version; do \
+          cd "/usr/local/lib/${version}/" \
+          && find . -name '*.pyc' -print0 | xargs -0 -n1 rm -rf \
+          && find . -name '__pycache__' -print0 | xargs -0 -n1 rm -rf; \
+        done \
+      build_dep: [python3-dev, libpython3-dev]
+      run_dep: [python3-distutils]
+
+  ###
+  ### Go
+  ###
+  go:
+    disabled: []
+    check: go version 2>&1 | grep -E 'go[0-9][.0-9]+' || (go version; false)
+    all:
+      type: custom
+      pre: |
+        GO_VERSION="{{ go_version }}" \
+        && case "${TARGETARCH:-amd64}" in \
+          amd64) go_arch="amd64" ;; \
+          arm64) go_arch="arm64" ;; \
+          *) echo "Unsupported TARGETARCH: ${TARGETARCH}"; exit 1 ;; \
+        esac \
+      command: |
+        curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" -o /tmp/go.tgz \
+        && rm -rf /usr/local/go \
+        && tar -C /usr/local -xzf /tmp/go.tgz \
+        && rm -f /tmp/go.tgz \
+      post: |
+        mkdir -p /home/devilbox/go/bin \
+        && chown -R devilbox:devilbox /home/devilbox/go \
+      build_dep: []
+      run_dep: []
+
+  ###
+  ### nvm + Node LTS
+  ###
+  nvm:
+    disabled: []
+    check: |
+      runuser -l devilbox -c '. {{ nvm_home }}/nvm.sh; nvm --version' | grep -E '^[0-9][.0-9]+' \
+      && runuser -l devilbox -c '. {{ nvm_home }}/nvm.sh; node --version' | grep -E '^v[0-9][.0-9]+' \
+      && runuser -l devilbox -c '. {{ nvm_home }}/nvm.sh; npm --version' | grep -E '^[0-9][.0-9]+' \
+    all:
+      type: custom
+      pre: |
+        NODE_VERSION="{{ node_version }}" \
+        && NVM_VERSION="{{ nvm_version | default('v0.40.4') }}" \
+      command: |
+        mkdir -p {{ nvm_home }} \
+        && curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
+          | NVM_DIR="{{ nvm_home }}" PROFILE=/dev/null bash \
+        && chown -Rf devilbox:devilbox "{{ nvm_home }}" \
+      post: |
+        runuser -l devilbox -c ". {{ nvm_home }}/nvm.sh; nvm install ${NODE_VERSION}" \
+        && runuser -l devilbox -c ". {{ nvm_home }}/nvm.sh; nvm use ${NODE_VERSION}" \
+        && runuser -l devilbox -c ". {{ nvm_home }}/nvm.sh; corepack enable" \
+        \
+        && NODE_DIR="$(runuser -l devilbox -c '. {{ nvm_home }}/nvm.sh; nvm which default | xargs dirname')" \
+        && ln -sfn "$(dirname ${NODE_DIR})" {{ nvm_home }}/current \
+        && for bin in node npm npx corepack; do \
+          [ -f "${NODE_DIR}/${bin}" ] && ln -sf "${NODE_DIR}/${bin}" "/usr/local/bin/${bin}"; \
+        done \
+        \
+        && chmod 0777 {{ nvm_home }} \
+        && find {{ nvm_home }} -type f -print0 | xargs -n1 -0 chmod go+w || true \
+        && find {{ nvm_home }} -type d -print0 | xargs -n1 -0 chmod 0777 || true \
+        && chown -Rf devilbox:devilbox {{ nvm_home }} \
+        \
+        && rm -rf {{ nvm_home }}/.cache \
+        && NODE_CURRENT="$(runuser -l devilbox -c '. {{ nvm_home }}/nvm.sh; node --version')" \
+        && rm -rf "{{ nvm_home }}/versions/node/${NODE_CURRENT}/share" \
+        && rm -rf "{{ nvm_home }}/versions/node/${NODE_CURRENT}/include" \
+      build_dep: []
+      run_dep: []
+
+  ###
+  ### bun
+  ###
+  bun:
+    disabled: []
+    check: bun --version 2>&1 | grep -E '[0-9][.0-9]+' || (bun --version; false)
+    all:
+      type: custom
+      pre: |
+        BUN_VERSION="{{ bun_version | default('latest') }}" \
+      command: |
+        curl -fsSL https://bun.sh/install | bash \
+        && install -m 0755 /root/.bun/bin/bun /usr/local/bin/bun \
+        && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
+      post: |
+        rm -rf /root/.bun \
+      build_dep: []
+      run_dep: []

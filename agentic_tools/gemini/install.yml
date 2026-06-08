@@ -1,0 +1,13 @@
+---
+
+check: gemini --version 2>&1 | grep -qiE '(gemini|not yet|[0-9]+\.[0-9]+)'
+
+all:
+  type: npm
+  package: "@google/gemini-cli"
+  binary: gemini
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:

@@ -1,0 +1,11 @@
+---
+
+name: droid
+
+default_enabled: true
+
+enabled_by_default: true
+
+exclude: []
+
+depends: []

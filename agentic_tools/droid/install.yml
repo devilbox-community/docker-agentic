@@ -1,0 +1,18 @@
+---
+
+check: droid --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: custom
+  command: |
+    mkdir -p /opt/agentic-tools/factory/bin;
+    curl -fsSL https://app.factory.ai/cli | sh;
+    install -D -m 0755 "${HOME}/.local/bin/droid" /opt/agentic-tools/factory/bin/droid;
+    test -x /opt/agentic-tools/factory/bin/droid
+  package: "@factory/cli"
+  binary: droid
+  version:
+  build_dep: []
+  run_dep: [xdg-utils]
+  pre:
+  post:

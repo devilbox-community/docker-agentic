@@ -1,0 +1,117 @@
+# vi: ft=dockerfile
+# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-agentic.j2 instead.
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 1/4: Devilbox Agentic image (BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Installs the specified agent tool in a builder image to keep the final image clean.
+###
+FROM devilboxcommunity/agentic:work AS agentic-builder
+
+USER root
+
+
+###
+### Install agent tool: kimi
+###
+# -------------------- kimi --------------------
+RUN set -eux; \
+	mkdir -p /opt/agentic-tools/kimi; KIMI_INSTALL_DIR=/opt/agentic-tools/kimi KIMI_VERSION=1.46.0 KIMI_NO_MODIFY_PATH=1 curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash; install -D -m 0755 /root/.kimi-code/bin/kimi /opt/agentic-tools/kimi/bin/kimi; test -x /opt/agentic-tools/kimi/bin/kimi; \
+	mkdir -p /opt/agentic-tools/kimi/bin; \
+	if [ ! -x /opt/agentic-tools/kimi/bin/kimi ] && command -v kimi >/dev/null 2>&1; then \
+		install -m 0755 "$(command -v kimi)" /opt/agentic-tools/kimi/bin/kimi; \
+	fi; \
+	true
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 2/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Copies the installed agent tool binaries into a clean final image.
+###
+FROM devilboxcommunity/agentic:work AS kimi
+
+USER root
+
+
+###
+### Copy agent tool binaries from builder
+###
+COPY --from=agentic-builder /opt/agentic-tools/kimi /opt/agentic-tools/kimi
+
+###
+### Default-enabled symlink
+###
+RUN set -eux \
+    && ln -sfn /opt/agentic-tools/kimi/bin/kimi /usr/local/bin/kimi \
+    && true
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 3/4: Devilbox Agentic image (TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test the installed agent tool binary.
+###
+FROM kimi AS agentic-test
+
+USER root
+
+# -------------------- kimi --------------------
+RUN set -eux \
+    && kimi --version 2>&1 | grep -qE '[0-9]+\.[0-9]+' \
+    && true
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 4/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Prepare final agentic image (STAGE: kimi)
+###
+FROM kimi AS final
+
+###
+### Labels
+###
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+#LABEL "org.opencontainers.image.created"=""
+#LABEL "org.opencontainers.image.version"=""
+#LABEL "org.opencontainers.image.revision"=""
+LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.vendor"="Devilbox Community"
+LABEL "org.opencontainers.image.licenses"="MIT"
+LABEL "org.opencontainers.image.ref.name"="kimi"
+LABEL "org.opencontainers.image.title"="Devilbox Agentic (kimi)"
+LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: kimi"
+
+WORKDIR /shared/httpd
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
+CMD ["bash"]

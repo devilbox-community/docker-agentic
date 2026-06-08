@@ -20,14 +20,14 @@ on:
 jobs:
 
   # -----------------------------------------------------------------------------------------------
-  # (1/6) Determine parameter settings
+  # (1/8) Determine parameter settings
   # -----------------------------------------------------------------------------------------------
   params:
     uses: ./.github/workflows/params-nightly_master.yml
 
 
   # -----------------------------------------------------------------------------------------------
-  # (2/6) Configure Build and Deploy Matrices
+  # (2/8) Configure Build and Deploy Matrices
   # -----------------------------------------------------------------------------------------------
   configure:
     needs: [params]
@@ -43,7 +43,7 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (3/6) Build & Test base
+  # (3/8) Build & Test base
   # -----------------------------------------------------------------------------------------------
   build-base:
     needs:
@@ -72,7 +72,7 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (4/6) Build & Test work
+  # (4/8) Build & Test work
   # -----------------------------------------------------------------------------------------------
   build-work:
     needs:
@@ -101,7 +101,65 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (5/6) Push images
+  # (5/8) Discover agentic tools automatically from generated Dockerfiles
+  # -----------------------------------------------------------------------------------------------
+  # Scans Dockerfiles/agentic/Dockerfile-* and outputs the tool list as JSON.
+  # New tools are picked up automatically — no manual workflow edits needed.
+  discover-agentic-tools:
+    needs: [configure]
+    runs-on: ubuntu-latest
+    outputs:
+      tools: ${{ steps.discover.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: discover
+        run: |
+          TOOLS=$(ls Dockerfiles/agentic/Dockerfile-* 2>/dev/null | sed 's|.*/Dockerfile-||' | jq -R -s -c 'split("\n")[:-1]')
+          echo "tools=${TOOLS}" >> $GITHUB_OUTPUT
+          echo "Discovered agent tools: ${TOOLS}"
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (6/8) Build & Test agentic tools (per-agent images)
+  # -----------------------------------------------------------------------------------------------
+  # The tool list is auto-discovered from Dockerfiles/agentic/Dockerfile-*.
+  build-agentic-tools:
+    needs:
+      - configure
+      - build-base
+      - build-work
+      - discover-agentic-tools
+    strategy:
+      matrix:
+        tool: ${{ fromJson(needs.discover-agentic-tools.outputs.tools) }}
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: false
+      upload_artifact: true
+      matrix: '[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]'
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+      stage_prev: work
+
+  test-agentic-tools:
+    needs:
+      - configure
+      - build-agentic-tools
+      - discover-agentic-tools
+    strategy:
+      matrix:
+        tool: ${{ fromJson(needs.discover-agentic-tools.outputs.tools) }}
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-test.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: '[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]'
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (7/8) Push images
   # -----------------------------------------------------------------------------------------------
   push-base:
     needs:
@@ -135,9 +193,30 @@ jobs:
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
       dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+  push-agentic-tools:
+    needs:
+      - configure
+      - test-base
+      - test-work
+      - test-agentic-tools
+      - discover-agentic-tools
+    strategy:
+      matrix:
+        tool: ${{ fromJson(needs.discover-agentic-tools.outputs.tools) }}
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-image.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: '[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]'
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
 
   # -----------------------------------------------------------------------------------------------
-  # (6/6) Push Manifests
+  # (8/8) Push Manifests
   # -----------------------------------------------------------------------------------------------
   manifest-base:
     needs:

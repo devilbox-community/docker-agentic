@@ -26,6 +26,7 @@ on:
         options:
           - base
           - work
+          - agentic
           - all
       version:
         description: 'Comma separated list of version (example: "latest", "stable")'
@@ -91,7 +92,7 @@ run-name: ${{ inputs.run-name }} 🚀
 
 jobs:
   # -----------------------------------------------------------------------------------------------
-  # (0/6) Compute environment
+  # (0/9) Compute environment
   # -----------------------------------------------------------------------------------------------
   set-env:
     name: Compute env
@@ -107,7 +108,7 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (1/6) Determine parameter settings
+  # (1/9) Determine parameter settings
   # -----------------------------------------------------------------------------------------------
   params:
     name: Compute params
@@ -119,7 +120,7 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (2/6) Configure Build and Deploy Matrices
+  # (2/9) Configure Build and Deploy Matrices
   # -----------------------------------------------------------------------------------------------
   configure:
     needs: [params]
@@ -135,7 +136,7 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (3/6) Build & Test base
+  # (3/9) Build & Test base
   # -----------------------------------------------------------------------------------------------
   build-base:
     name: Build base
@@ -192,7 +193,7 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (4/6) Build & Test work
+  # (4/9) Build & Test work
   # -----------------------------------------------------------------------------------------------
   build-work:
     name: Build work
@@ -249,7 +250,96 @@ jobs:
 
 
   # -----------------------------------------------------------------------------------------------
-  # (5/6) Push images
+  # (5/9) Discover agentic tools automatically from generated Dockerfiles
+  # -----------------------------------------------------------------------------------------------
+  discover-agentic-tools:
+    needs: [configure]
+    runs-on: ubuntu-latest
+    outputs:
+      tools: ${{ steps.discover.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: discover
+        run: |
+          TOOLS=$(ls Dockerfiles/agentic/Dockerfile-* 2>/dev/null | sed 's|.*/Dockerfile-||' | jq -R -s -c 'split("\n")[:-1]')
+          echo "tools=${TOOLS}" >> $GITHUB_OUTPUT
+          echo "Discovered agent tools: ${TOOLS}"
+    if: ${{ inputs.stage == 'all' || inputs.stage == 'agentic' }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (6/9) Build & Test agentic tools (per-agent images) — "all" path
+  # -----------------------------------------------------------------------------------------------
+  build-agentic-tools:
+    name: Build agentic tools
+    needs:
+      - configure
+      - build-base
+      - build-work
+      - discover-agentic-tools
+    strategy:
+      matrix:
+        tool: ${{ fromJson(needs.discover-agentic-tools.outputs.tools) }}
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: false
+      upload_artifact: true
+      matrix: '[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]'
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+      stage_prev: work
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    if: ${{ inputs.stage == 'all' }}
+
+  test-agentic-tools:
+    name: Test agentic tools
+    needs:
+      - configure
+      - build-agentic-tools
+      - discover-agentic-tools
+    strategy:
+      matrix:
+        tool: ${{ fromJson(needs.discover-agentic-tools.outputs.tools) }}
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-test.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: '[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]'
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+    if: ${{ inputs.stage == 'all' }}
+
+  # (Stage) Build, Test & Push agentic tools — "agentic"-only path
+  build-agentic-tools-manual:
+    name: (Stage) Build & Test agentic tools
+    needs:
+      - configure
+      - discover-agentic-tools
+    strategy:
+      matrix:
+        tool: ${{ fromJson(needs.discover-agentic-tools.outputs.tools) }}
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-build.yml@master
+    with:
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      run_tests: true
+      upload_artifact: true
+      pull_base_image: true
+      push_image: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      matrix: '[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]'
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+      stage_prev: ''
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'agentic' }}
+
+
+  # -----------------------------------------------------------------------------------------------
+  # (7/9) Push images (base, work, agentic-tools)
   # -----------------------------------------------------------------------------------------------
   push-base:
     name: Push base image
@@ -291,9 +381,34 @@ jobs:
       dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
     if: ${{ inputs.stage == 'all' }}
 
+  push-agentic-tools:
+    name: Push agentic tool images
+    needs:
+      - configure
+      - test-base
+      - test-work
+      - test-agentic-tools
+      - discover-agentic-tools
+    strategy:
+      matrix:
+        tool: ${{ fromJson(needs.discover-agentic-tools.outputs.tools) }}
+    uses: devilbox-community/github-actions/.github/workflows/docker-multistage-push-image.yml@master
+    with:
+      can_deploy: ${{ needs.configure.outputs.can_login == 'true' && needs.configure.outputs.can_push == 'true' }}
+      has_refs: ${{ needs.configure.outputs.has_refs == 'true' }}
+      matrix: '[{"NAME":"Agentic","VERSION":"latest","FLAVOUR":"default","ARCH":"linux/amd64"}]'
+      artifact_prefix: ${{ needs.configure.outputs.artifact_prefix }}
+      stage: ${{ matrix.tool }}
+      default_branch: ${{ inputs.default_branch }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    if: ${{ inputs.stage == 'all' }}
+
 
   # -----------------------------------------------------------------------------------------------
-  # (6/6) Push Manifests
+  # (8/9) Push Manifests
   # -----------------------------------------------------------------------------------------------
   manifest-base:
     name: Push base Manifest

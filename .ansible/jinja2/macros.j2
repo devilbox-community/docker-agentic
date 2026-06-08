@@ -29,3 +29,33 @@
     {%- endif -%}
     {{- list | to_json -}}
 {%- endmacro -%}
+
+{#
+### Get list value of key only if item is not disabled.
+###
+### Returns jsonified string of a list.
+###
+### Usage:
+### {%- set list = [] -%}
+### {%- for val in get_list_if_enabled(item, items_available) | from_json -%}
+###     {%- if val -%}
+###         {{- list.append(val) -}}
+###     {%- endif -%}
+### {%- endfor -%}
+###
+### name:    The item name
+### items:   The items_available list
+### key:     The key to retrieve the value for
+#}
+{%- macro get_list_if_enabled(name, items, key) -%}
+    {%- set list = [] -%}
+    {# Not disabled #}
+    {%- if ('disabled' not in items[name]) or (name not in items[name]['disabled']) -%}
+        {%- if 'all' in items[name] and key in items[name]['all'] -%}
+            {%- for val in items[name]['all'][key] -%}
+                {{- list.append(val) -}}
+            {%- endfor -%}
+        {%- endif -%}
+    {%- endif -%}
+    {{- list | to_json -}}
+{%- endmacro -%}

@@ -11,6 +11,19 @@
 
 {#-
 ###
+### Check if not disabled
+###
+### Returns 'true' string if not disabled, otherwise returns nothing
+###
+-#}
+{%- macro is_not_disabled(name, items) -%}
+	{%- if ('disabled' not in items[name]) or (name not in items[name]['disabled']) -%}
+		{{- 'true' -}}
+	{%- endif -%}
+{%- endmacro -%}
+
+{#-
+###
 ### Get 'type'
 ###
 ### Returns type string
@@ -61,7 +74,7 @@
 ###
 -#}
 {%- macro get_build_dep(name, items) -%}
-	{{- fn.get_list(name, items, 'build_dep') -}}
+	{{- fn.get_list_if_enabled(name, items, 'build_dep') -}}
 {%- endmacro -%}
 
 {#-
@@ -72,7 +85,7 @@
 ###
 -#}
 {%- macro get_run_dep(name, items) -%}
-	{{- fn.get_list(name, items, 'run_dep') -}}
+	{{- fn.get_list_if_enabled(name, items, 'run_dep') -}}
 {%- endmacro -%}
 
 

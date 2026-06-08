@@ -1,0 +1,124 @@
+# vi: ft=dockerfile
+# Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-agentic.j2 instead.
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 1/4: Devilbox Agentic image (BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Installs the specified agent tool in a builder image to keep the final image clean.
+###
+FROM devilboxcommunity/agentic:work AS agentic-builder
+
+USER root
+
+
+###
+### Install agent tool: droid
+###
+# -------------------- droid --------------------
+RUN set -eux; \
+	mkdir -p /opt/agentic-tools/factory/bin; curl -fsSL https://app.factory.ai/cli | sh; install -D -m 0755 "${HOME}/.local/bin/droid" /opt/agentic-tools/factory/bin/droid; test -x /opt/agentic-tools/factory/bin/droid; \
+	mkdir -p /opt/agentic-tools/droid/bin; \
+	if [ ! -x /opt/agentic-tools/droid/bin/droid ] && command -v droid >/dev/null 2>&1; then \
+		install -m 0755 "$(command -v droid)" /opt/agentic-tools/droid/bin/droid; \
+	fi; \
+	true
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 2/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Copies the installed agent tool binaries into a clean final image.
+###
+FROM devilboxcommunity/agentic:work AS droid
+
+USER root
+
+###
+### Install run_dep for droid
+###
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends --no-install-suggests \
+        xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+###
+### Copy agent tool binaries from builder
+###
+COPY --from=agentic-builder /opt/agentic-tools/droid /opt/agentic-tools/droid
+
+###
+### Default-enabled symlink
+###
+RUN set -eux \
+    && ln -sfn /opt/agentic-tools/droid/bin/droid /usr/local/bin/droid \
+    && true
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 3/4: Devilbox Agentic image (TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test the installed agent tool binary.
+###
+FROM droid AS agentic-test
+
+USER root
+
+# -------------------- droid --------------------
+RUN set -eux \
+    && droid --version 2>&1 | grep -qE '[0-9]+\.[0-9]+' \
+    && true
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 4/4: Devilbox Agentic image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Prepare final agentic image (STAGE: droid)
+###
+FROM droid AS final
+
+###
+### Labels
+###
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+#LABEL "org.opencontainers.image.created"=""
+#LABEL "org.opencontainers.image.version"=""
+#LABEL "org.opencontainers.image.revision"=""
+LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.vendor"="Devilbox Community"
+LABEL "org.opencontainers.image.licenses"="MIT"
+LABEL "org.opencontainers.image.ref.name"="droid"
+LABEL "org.opencontainers.image.title"="Devilbox Agentic (droid)"
+LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLI: droid"
+
+WORKDIR /shared/httpd
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
+CMD ["bash"]

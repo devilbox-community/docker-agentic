@@ -6,7 +6,7 @@ A dedicated developer environment for AI coding agents and CLI tools. This conta
 
 ```bash
 cd devilbox
-./dvl.sh agent enable
+./dvl.sh agent enable agentic
 ./dvl.sh agent up
 ./dvl.sh agent shell
 ```
@@ -19,13 +19,13 @@ The project follows the multi-stage image pattern from `docker-php-fpm`:
 
 | Stage | Image | Contents |
 |-------|-------|----------|
-| `base` | `devilboxcommunity/agentic:base` | Debian + runtimes (go, node, bun, python) + extra tools |
-| `work` | `devilboxcommunity/agentic:work` | Base + build toolchain + sudo + bash completions |
+| `base` | `devilboxcommunity/agentic:base` | Debian trixie-slim + system packages |
+| `work` | `devilboxcommunity/agentic:work` | Base + runtimes (Go, nvm/Node, Bun, Python) + dev tools + extra tools |
 | Per-agent | `devilboxcommunity/agentic:claude-code`, etc. | Work + single agent harness tool |
 
-### Extra tools (built into base image)
+### Extra tools (built into work image)
 
-These are shared spec/workflow utilities available to all per-agent images.
+These are shared spec/workflow utilities installed in the `:work` image and available to all per-agent images.
 
 | Name | Type | Binary | Purpose |
 |------|------|--------|---------|
@@ -35,24 +35,31 @@ These are shared spec/workflow utilities available to all per-agent images.
 ### Agentic tools (per-agent images)
 
 Each agent harness CLI gets its own Docker image layered on top of `work`.
+12 tools are auto-generated and auto-discovered by CI.
 
 | Name | Type | Binary | Image tag |
 |------|------|--------|-----------|
 | [claude-code](agentic_tools/claude-code/) | custom | `claude` | `claude-code` |
 | [codex](agentic_tools/codex/) | custom | `codex` | `codex` |
 | [copilot](agentic_tools/copilot/) | custom | `copilot` | `copilot` |
+| [droid](agentic_tools/factory/) | custom | `droid` | `droid` |
+| [gemini](agentic_tools/gemini/) | npm | `gemini` | `gemini` |
+| [kilo-code](agentic_tools/kilo-code/) | npm | `kilo` | `kilo-code` |
+| [kimi](agentic_tools/kimi/) | custom | `kimi` | `kimi` |
+| [kiro](agentic_tools/kiro/) | custom | `kiro-cli` | `kiro` |
 | [opencode](agentic_tools/opencode/) | custom | `opencode` | `opencode` |
 | [pi-coding-agent](agentic_tools/pi-coding-agent/) | custom | `pi` | `pi-coding-agent` |
+| [qwen-code](agentic_tools/qwen-code/) | npm | `qwen` | `qwen-code` |
 | [reasonix](agentic_tools/reasonix/) | npm | `reasonix` | `reasonix` |
 
 ## ENABLE/DISABLE toggle
 
-Runtime toggle environment variables manage tool availability in the base image:
+Runtime toggle environment variables manage tool availability in the container:
 
 - `AGENTIC_TOOLS_ENABLE` — Enables additional tools at startup.
-- `AGENTIC_TOOLS_DISABLE=speckit` — Disables a tool that is enabled by default.
+- `AGENTIC_TOOLS_DISABLE` — Disables a tool that is enabled by default (disable wins on collision).
 
-Toggle state is evaluated at the container entrypoint.
+Toggle state is evaluated at the container entrypoint via `20-agentic-toggle.sh`. See the [Agentic tools toggle docs](../devilbox/docs/src/content/docs/getting-started/agentic-tools-toggle/) for full details.
 
 ## Build
 
@@ -111,9 +118,12 @@ See [doc/AUTH.md](doc/AUTH.md) for details on the host-to-container OAuth bridge
 
 Data stored in the following host directories survives `docker volume rm` and container updates:
 
-- `cfg/agentic-home/` maps to `/home/devilbox` (history, gitconfig).
-- `cfg/agentic-shared/` maps to `/home/devilbox/.shared` (environment variables).
-- Tool-specific directories (e.g., `cfg/agentic-aider/`) map to their respective config paths.
+- `cfg/agentic/claude/` maps to `/home/devilbox/.claude` (Claude Code configs and sessions)
+- `cfg/agentic/codex/` maps to Codex state
+- `cfg/agentic/copilot/` maps to GitHub Copilot credentials
+- `cfg/agentic/opencode/` maps to `~/.config/opencode`
+- `cfg/agentic/openspec/` maps to OpenSpec workspace
+- `cfg/agentic/shared/` maps to `/home/devilbox/.shared` (shared env vars)
 
 ---
 

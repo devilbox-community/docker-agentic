@@ -1,0 +1,16 @@
+---
+
+# The name of the module
+name: qwen-code
+
+default_enabled: true
+
+# Default-toggle status for Wave 8D runtime symlinker.
+enabled_by_default: true
+
+# Exclude module build/installation
+exclude: []
+
+# In order for this tool to build/install correctly,
+# the following tools must have been installed first.
+depends: []

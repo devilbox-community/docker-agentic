@@ -1,0 +1,11 @@
+---
+
+name: kilo-code
+
+default_enabled: true
+
+enabled_by_default: true
+
+exclude: []
+
+depends: []

@@ -1,154 +1,345 @@
 # vi: ft=dockerfile
 # Auto-generated via Ansible: edit .ansible/DOCKERFILES/Dockerfile-work.j2 instead.
 
-# Work stage layers on top of the previously published base image
-# (devilboxcommunity/agentic:base). Matches the docker-php-fpm
-# convention where higher-tier stages FROM the lower-tier published image
-# rather than re-implementing it inline.
-#
-# The work image adds:
-#   - ALL runtimes: nvm + Node LTS, Go, Bun, Python + pip/venv/pipx + uv
-#   - ALL comfort/dev tools: jq, yq, rg, fd, gh, tmux, vim, etc.
-#   - Build toolchain: gcc, g++, cmake, *-dev packages
-#   - Extra tools: openspec, speckit
-#   - bash-devilbox + sudo configuration
-FROM devilboxcommunity/agentic:base AS work
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 1/7: Devilbox Agentic work image (HELP BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
 
 ###
-### Labels
+### Installs all cli tools required to install custom tools
 ###
-# https://github.com/opencontainers/image-spec/blob/master/annotations.md
-#LABEL "org.opencontainers.image.created"=""
-#LABEL "org.opencontainers.image.version"=""
-#LABEL "org.opencontainers.image.revision"=""
-LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
-LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
-LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
-LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
-LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
-LABEL "org.opencontainers.image.vendor"="Devilbox Community"
-LABEL "org.opencontainers.image.licenses"="MIT"
-LABEL "org.opencontainers.image.ref.name"="work"
-LABEL "org.opencontainers.image.title"="Devilbox Agentic (work)"
-LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLIs (work stage)"
+FROM devilboxcommunity/agentic:base AS agentic-work-help-builder
 
-ARG GO_VERSION=1.23.4
+###
+### Install build_dep
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+        libpython3-dev \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+###
+### Install run_dep
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+        python3-distutils \
+    && rm -rf /var/lib/apt/lists/*
 ARG TARGETARCH
 
-ENV PATH=/opt/nvm/current/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
+###
+### Devilbox required helper tools from group_vars (work-help.yml)
+###
 
-USER root
+# -------------------- comfort-tools --------------------
+RUN set -eux \
+	&& apt-get update
+	\
+	&& apt-get install -y --no-install-recommends --no-install-suggests \
+	  bash-completion \
+	  bzip2 \
+	  direnv \
+	  dnsutils \
+	  fd-find \
+	  gh \
+	  htop \
+	  iputils-ping \
+	  jq \
+	  nano \
+	  netcat-openbsd \
+	  openssh-client \
+	  pipx \
+	  procps \
+	  psmisc \
+	  python3 \
+	  python3-pip \
+	  python3-venv \
+	  ripgrep \
+	  socat \
+	  tmux \
+	  tree \
+	  unzip \
+	  vim \
+	  xz-utils \
+	  yq \
+	  zip \
+	\
+	&& rm -rf /var/lib/apt/lists/* \
+	&& apt-get clean
+	\
+	&& true
+
+# -------------------- build-toolchain --------------------
+RUN set -eux \
+	&& apt-get update
+	\
+	&& apt-get install -y --no-install-recommends --no-install-suggests \
+	  build-essential \
+	  cmake \
+	  g++ \
+	  gcc \
+	  libffi-dev \
+	  libssl-dev \
+	  make \
+	  pkg-config \
+	  python3-dev \
+	\
+	&& rm -rf /var/lib/apt/lists/*
+	\
+	&& true
+
+# -------------------- python-pip --------------------
+RUN set -eux \
+	&& rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
+	\
+	&& curl -sS -L --fail https://bootstrap.pypa.io/get-pip.py | python3 \
+	\
+	&& curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh \
+	&& /bin/ls -1 /usr/local/lib/ | grep ^python | while read -r version; do \
+	  cd "/usr/local/lib/${version}/" \
+	  && find . -name '*.pyc' -print0 | xargs -0 -n1 rm -rf \
+	  && find . -name '__pycache__' -print0 | xargs -0 -n1 rm -rf; \
+	done \
+	\
+	&& true
+
+# -------------------- go --------------------
+RUN set -eux \
+	&& GO_VERSION="1.23.4" \
+	&& case "${TARGETARCH:-amd64}" in \
+	  amd64) go_arch="amd64" ;; \
+	  arm64) go_arch="arm64" ;; \
+	  *) echo "Unsupported TARGETARCH: ${TARGETARCH}"; exit 1 ;; \
+	esac \
+	\
+	&& curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" -o /tmp/go.tgz \
+	&& rm -rf /usr/local/go \
+	&& tar -C /usr/local -xzf /tmp/go.tgz \
+	&& rm -f /tmp/go.tgz \
+	\
+	&& mkdir -p /home/devilbox/go/bin \
+	&& chown -R devilbox:devilbox /home/devilbox/go \
+	\
+	&& true
+
+# -------------------- nvm --------------------
+RUN set -eux \
+	&& NODE_VERSION="--lts" \
+	&& NVM_VERSION="v0.40.4" \
+	\
+	&& mkdir -p /opt/nvm \
+	&& curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
+	  | NVM_DIR="/opt/nvm" PROFILE=/dev/null bash \
+	&& chown -Rf devilbox:devilbox "/opt/nvm" \
+	\
+	&& runuser -l devilbox -c ". /opt/nvm/nvm.sh; nvm install ${NODE_VERSION}" \
+	&& runuser -l devilbox -c ". /opt/nvm/nvm.sh; nvm use ${NODE_VERSION}" \
+	&& runuser -l devilbox -c ". /opt/nvm/nvm.sh; corepack enable" \
+	\
+	&& NODE_DIR="$(runuser -l devilbox -c '. /opt/nvm/nvm.sh; nvm which default | xargs dirname')" \
+	&& ln -sfn "$(dirname ${NODE_DIR})" /opt/nvm/current \
+	&& for bin in node npm npx corepack; do \
+	  [ -f "${NODE_DIR}/${bin}" ] && ln -sf "${NODE_DIR}/${bin}" "/usr/local/bin/${bin}"; \
+	done \
+	\
+	&& chmod 0777 /opt/nvm \
+	&& find /opt/nvm -type f -print0 | xargs -n1 -0 chmod go+w || true \
+	&& find /opt/nvm -type d -print0 | xargs -n1 -0 chmod 0777 || true \
+	&& chown -Rf devilbox:devilbox /opt/nvm \
+	\
+	&& rm -rf /opt/nvm/.cache \
+	&& NODE_CURRENT="$(runuser -l devilbox -c '. /opt/nvm/nvm.sh; node --version')" \
+	&& rm -rf "/opt/nvm/versions/node/${NODE_CURRENT}/share" \
+	&& rm -rf "/opt/nvm/versions/node/${NODE_CURRENT}/include" \
+	\
+	&& true
+
+# -------------------- bun --------------------
+RUN set -eux \
+	&& BUN_VERSION="latest" \
+	\
+	&& curl -fsSL https://bun.sh/install | bash \
+	&& install -m 0755 /root/.bun/bin/bun /usr/local/bin/bun \
+	&& (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
+	\
+	&& rm -rf /root/.bun \
+	\
+	&& true
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 2/7: Devilbox Agentic work image (HELP)
+###
+########################################################################################################################
+########################################################################################################################
 
 ###
-### Install developer comfort tools + gh CLI + pipx + python (was in base)
+### Copies all cli tools required to run Agentic into a clean image
+###
+FROM devilboxcommunity/agentic:base AS agentic-work-help
+
+###
+### Install run_dep
 ###
 RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-        bash-completion \
-        bzip2 \
-        direnv \
-        dnsutils \
-        fd-find \
-        gh \
-        htop \
-        iputils-ping \
-        jq \
-        nano \
-        netcat-openbsd \
-        openssh-client \
-        pipx \
-        procps \
-        psmisc \
-        python3 \
-        python3-pip \
-        python3-venv \
-        ripgrep \
-        socat \
-        tmux \
-        tree \
-        unzip \
-        vim \
-        xz-utils \
-        yq \
-        zip \
-    && curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-###
-### Install build toolchain (gcc, *-dev) and system dev packages
-###
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-        build-essential \
-        cmake \
-        g++ \
-        gcc \
-        libffi-dev \
-        libssl-dev \
-        make \
-        pkg-config \
-        python3-dev \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+        python3-distutils \
     && rm -rf /var/lib/apt/lists/*
 
 ###
-### Install Go
+### Copy nvm
+###
+COPY --from=agentic-work-help-builder /opt/nvm /opt/nvm
+
+###
+### Copy Go
+###
+COPY --from=agentic-work-help-builder /usr/local/go /usr/local/go
+
+###
+### Copy binaries (/usr/local/bin)
+###
+COPY --from=agentic-work-help-builder /usr/local/bin /usr/local/bin
+
+###
+### Python packages
+###
+COPY --from=agentic-work-help-builder /usr/local/lib /usr/local/lib
+
+###
+### Set permission for home binaries
 ###
 RUN set -eux \
-    && case "${TARGETARCH:-amd64}" in \
-        amd64) go_arch="amd64" ;; \
-        arm64) go_arch="arm64" ;; \
-        *) echo "Unsupported TARGETARCH: ${TARGETARCH}"; exit 1 ;; \
-    esac \
-    && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" -o /tmp/go.tgz \
-    && rm -rf /usr/local/go \
-    && tar -C /usr/local -xzf /tmp/go.tgz \
-    && rm -f /tmp/go.tgz
+    && chown -Rf ${MY_USER}:${MY_GROUP} /opt/nvm \
+    && chown -Rf ${MY_USER}:${MY_GROUP} /home/${MY_USER}/go
 
 ###
-### Install nvm + Node LTS
+### Configure Bash (nvm, go, bun)
 ###
-ENV NVM_DIR=/opt/nvm
-ENV NVM_VERSION=v0.40.4
-ENV NODE_VERSION=lts/*
-
 RUN set -eux \
-    && install -d -m 0755 /opt/nvm \
-    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
-       | NVM_DIR=/opt/nvm PROFILE=/dev/null bash \
-    && chown -R devilbox:devilbox /opt/nvm \
-    && su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm install "'"${NODE_VERSION}"'" && nvm alias default "'"${NODE_VERSION}"'"' devilbox \
-    && NODE_DIR="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && ln -sfn "$(dirname ${NODE_DIR})" /opt/nvm/current \
-    && for bin in node npm npx corepack; do \
-         [ -f "${NODE_DIR}/${bin}" ] && ln -sf "${NODE_DIR}/${bin}" "/usr/local/bin/${bin}"; \
-       done \
-    && /usr/local/bin/corepack enable \
-    && node --version && npm --version
+    && { \
+        echo; \
+        echo "# [Devilbox] Ensure go, node, npm, npx, bun are in PATH"; \
+        echo 'PATH="/usr/local/go/bin:${PATH}"'; \
+        echo 'PATH="/opt/nvm/current/bin:${PATH}"'; \
+        echo 'PATH="${HOME}/go/bin:${PATH}"'; \
+        echo "export PATH"; \
+        echo; \
+        echo "# [Devilbox] Ensure to load nvm"; \
+        echo 'export NVM_DIR="/opt/nvm"'; \
+        echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm'; \
+        echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion'; \
+    } | tee -a /home/${MY_USER}/.bashrc /root/.bashrc \
+    && chown ${MY_USER}:${MY_GROUP} /home/${MY_USER}/.bashrc
 
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 3/7: Devilbox Agentic work image (HELP TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test all Devilbox cli utils if copying was successful
+###
+FROM agentic-work-help AS agentic-work-help-test
+
+###
+### Devilbox required helper tools from group_vars (work-help.yml)
+###
+
+# -------------------- comfort-tools --------------------
 RUN set -eux \
-    && NODE_BIN="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && echo "export PATH=\"${NODE_BIN}:\$PATH\"" > /etc/profile.d/nvm-path.sh \
-    && echo "PATH=\"${NODE_BIN}:${PATH}\"" >> /etc/environment
+	&& bash --version \
+	&& jq --version \
+	&& yq --version \
+	&& rg --version \
+	&& fd --version \
+	&& gh --version \
+	&& tmux -V \
+	&& vim --version \
+	&& python3 --version
+	\
+	&& true
 
-###
-### Install bun
-###
-ENV BUN_VERSION=latest
+# -------------------- build-toolchain --------------------
 RUN set -eux \
-    && curl -fsSL https://bun.sh/install | bash \
-    && install -m 0755 /root/.bun/bin/bun /usr/local/bin/bun \
-    && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
-    && rm -rf /root/.bun \
-    && bun --version
+	&& gcc --version \
+	&& g++ --version \
+	&& cmake --version \
+	&& make --version \
+	&& pkg-config --version
+	\
+	&& true
+
+# -------------------- python-pip --------------------
+RUN set -eux \
+	&& pip --version \
+	&& pipx --version \
+	&& uv --version
+	\
+	&& true
+
+# -------------------- go --------------------
+RUN set -eux \
+	&& go version 2>&1 | grep -E 'go[0-9][.0-9]+' || (go version; false)	\
+	&& true
+
+# -------------------- nvm --------------------
+RUN set -eux \
+	&& runuser -l devilbox -c '. /opt/nvm/nvm.sh; nvm --version' | grep -E '^[0-9][.0-9]+' \
+	&& runuser -l devilbox -c '. /opt/nvm/nvm.sh; node --version' | grep -E '^v[0-9][.0-9]+' \
+	&& runuser -l devilbox -c '. /opt/nvm/nvm.sh; npm --version' | grep -E '^[0-9][.0-9]+' \
+	\
+	&& true
+
+# -------------------- bun --------------------
+RUN set -eux \
+	&& bun --version 2>&1 | grep -E '[0-9][.0-9]+' || (bun --version; false)	\
+	&& true
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 4/7: Devilbox Agentic work image (TOOLS BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
 
 ###
-### Install extra tools (openspec, speckit) from extra_tools/
+### This stage can be easily modified by adding tools into the extra_tools/ directory.
 ###
+FROM agentic-work-help AS agentic-work-tools-builder
 
+###
+### Install build_dep, run_dep or tools type: apt
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+		# ---------- type: apt ----------
+		openspec \
+		speckit \
+	&& rm -rf /var/lib/apt/lists/*
 
+###
+### Install defined extra_tools
+###
 # -------------------- openspec --------------------
 RUN set -eux; \
 	npm install -g @fission-ai/openspec@latest; \
@@ -179,6 +370,110 @@ RUN set -eux; \
 # speckit  (specify)
 # ----- Installed-only extra tools (binary exists, no PATH symlink by default): -----
 
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 5/7: Devilbox Agentic work image (TOOLS)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### This stage can be easily modified by adding tools into the extra_tools/ directory.
+###
+FROM agentic-work-help AS agentic-work-tools
+
+###
+### Install run_dep or tools type: apt
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+		# ---------- type: apt ----------
+		openspec \
+		speckit \
+	&& rm -rf /var/lib/apt/lists/*
+
+###
+### Copy extra tools from builder
+###
+COPY --from=agentic-work-tools-builder /opt/agentic-tools /opt/agentic-tools
+
+###
+### Copy Custom (binaries in /usr/local/bin)
+###
+COPY --from=agentic-work-tools-builder /usr/local/bin /usr/local/bin
+
+###
+### Set permission for agentic tools
+###
+RUN set -eux \
+    && chown -Rf ${MY_USER}:${MY_GROUP} /opt/agentic-tools
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 6/7: Devilbox Agentic work image (TOOLS TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test all Devilbox cli utils if copying was successful
+###
+FROM agentic-work-tools AS agentic-work-tools-test
+
+
+# -------------------- (npm) openspec --------------------
+RUN set -eux \
+	&& openspec --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'	\
+	&& true
+
+# -------------------- (pip) speckit --------------------
+RUN set -eux \
+	&& specify --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'	\
+	&& true
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 7/7: Devilbox Agentic work image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Prepare final work image (STAGE: work)
+###
+FROM agentic-work-tools AS work
+
+###
+### Labels
+###
+# https://github.com/opencontainers/image-spec/blob/master/annotations.md
+#LABEL "org.opencontainers.image.created"=""
+#LABEL "org.opencontainers.image.version"=""
+#LABEL "org.opencontainers.image.revision"=""
+LABEL "maintainer"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.authors"="Toan Nguyen <devilbox@nntoan.com>"
+LABEL "org.opencontainers.image.url"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.documentation"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.source"="https://github.com/devilbox-community/docker-agentic"
+LABEL "org.opencontainers.image.vendor"="Devilbox Community"
+LABEL "org.opencontainers.image.licenses"="MIT"
+LABEL "org.opencontainers.image.ref.name"="work"
+LABEL "org.opencontainers.image.title"="Devilbox Agentic (work)"
+LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLIs (work stage)"
+
+###
+### Default-enabled extra tools symlinks
+###
 RUN set -eux \
     && ln -sfn /opt/agentic-tools/openspec/bin/openspec /usr/local/bin/openspec \
     && ln -sfn /opt/agentic-tools/speckit/bin/specify /usr/local/bin/specify \
@@ -193,7 +488,13 @@ RUN set -eux \
     && echo ". /etc/bash-devilbox" >> /home/devilbox/.bashrc \
     && chown devilbox:devilbox /home/devilbox/.bashrc
 
+###
+### Where to start inside the container
+###
 WORKDIR /shared/httpd
 
+###
+### Entrypoint
+###
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
 CMD ["bash"]

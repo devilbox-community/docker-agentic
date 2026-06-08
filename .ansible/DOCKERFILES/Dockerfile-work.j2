@@ -2,18 +2,396 @@
 {{ edit_comment_work }}
 {% import './jinja2/macros-work.j2' as fn %}
 
-# Work stage layers on top of the previously published base image
-# (devilboxcommunity/agentic:base). Matches the docker-php-fpm
-# convention where higher-tier stages FROM the lower-tier published image
-# rather than re-implementing it inline.
-#
-# The work image adds:
-#   - ALL runtimes: nvm + Node LTS, Go, Bun, Python + pip/venv/pipx + uv
-#   - ALL comfort/dev tools: jq, yq, rg, fd, gh, tmux, vim, etc.
-#   - Build toolchain: gcc, g++, cmake, *-dev packages
-#   - Extra tools: openspec, speckit
-#   - bash-devilbox + sudo configuration
-FROM {{ docker_user }}/{{ image_name }}:base AS work
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 1/7: Devilbox Agentic work image (HELP BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Installs all cli tools required to install custom tools
+###
+FROM {{ docker_user }}/{{ image_name }}:base AS agentic-work-help-builder
+
+{% set build_deps = [] -%}
+{%- for tool in help_software_enabled -%}
+    {%- for dep in fn.get_build_dep(tool, help_software_available) | from_json -%}
+        {%- if dep -%}
+            {{- build_deps.append(dep) -}}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+{%- if build_deps %}
+###
+### Install build_dep
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+{% for build_dep in build_deps | unique | sort %}
+        {{ build_dep }} \
+{% endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{%- endif %}
+
+{% set run_deps = [] -%}
+{%- for tool in help_software_enabled -%}
+    {%- for dep in fn.get_run_dep(tool, help_software_available) | from_json -%}
+        {%- if dep -%}
+            {{- run_deps.append(dep) -}}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+{%- if run_deps %}
+###
+### Install run_dep
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+{% for run_dep in run_deps | unique | sort %}
+        {{ run_dep }} \
+{% endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{%- endif %}
+
+ARG TARGETARCH
+
+###
+### Devilbox required helper tools from group_vars (work-help.yml)
+###
+{% for tool in help_software_enabled -%}
+    {# Not disabled #}
+    {%- if fn.is_not_disabled(tool, help_software_available) -%}
+        {{- "\n" }}# -------------------- {{ tool }} --------------------
+        {{- "\n" }}RUN set -eux \
+        {#- -#}
+        {#- [PRE] -#}
+        {%- if fn.get_pre(tool, help_software_available) | length -%}
+            {{ "\n\t" }}&& {{ fn.get_pre(tool, help_software_available) | indent( "\t" ) }}{{ "\t\\" }}
+        {%- endif -%}
+        {#- -#}
+        {#- [COMMAND] -#}
+        {%- if fn.get_type(tool, help_software_available) == 'custom' -%}
+            {{ "\n\t" }}&& {{ fn.tool_custom_get_command(tool, help_software_available) | indent( "\t" ) }}{{ "\t\\" }}
+        {%- endif -%}
+        {#- -#}
+        {#- [POST] -#}
+        {%- if fn.get_post(tool, help_software_available) | length -%}
+            {{ "\n\t" }}&& {{ fn.get_post(tool, help_software_available) | indent( "\t" ) }}{{ "\t\\" }}
+        {%- endif -%}
+        {#- -#}
+        {#- Finalize -#}
+        {{ "\n\t" }}&& true{{ "\n" }}
+    {%- endif -%}
+{%- endfor %}
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 2/7: Devilbox Agentic work image (HELP)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Copies all cli tools required to run Agentic into a clean image
+###
+FROM {{ docker_user }}/{{ image_name }}:base AS agentic-work-help
+
+{% set run_deps = [] -%}
+{%- for tool in help_software_enabled -%}
+    {%- for dep in fn.get_run_dep(tool, help_software_available) | from_json -%}
+        {%- if dep -%}
+            {{- run_deps.append(dep) -}}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+{%- if run_deps %}
+###
+### Install run_dep
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+{% for run_dep in run_deps | unique | sort %}
+        {{ run_dep }} \
+{% endfor %}
+    && rm -rf /var/lib/apt/lists/*
+{% endif %}
+
+###
+### Copy nvm
+###
+COPY --from=agentic-work-help-builder {{ nvm_home }} {{ nvm_home }}
+
+###
+### Copy Go
+###
+COPY --from=agentic-work-help-builder {{ go_home }} {{ go_home }}
+
+###
+### Copy binaries (/usr/local/bin)
+###
+COPY --from=agentic-work-help-builder /usr/local/bin /usr/local/bin
+
+###
+### Python packages
+###
+COPY --from=agentic-work-help-builder /usr/local/lib /usr/local/lib
+
+###
+### Set permission for home binaries
+###
+RUN set -eux \
+    && chown -Rf ${MY_USER}:${MY_GROUP} {{ nvm_home }} \
+    && chown -Rf ${MY_USER}:${MY_GROUP} /home/${MY_USER}/go
+
+###
+### Configure Bash (nvm, go, bun)
+###
+RUN set -eux \
+    && { \
+        echo; \
+        echo "# [Devilbox] Ensure go, node, npm, npx, bun are in PATH"; \
+        echo 'PATH="{{ go_home }}/bin:${PATH}"'; \
+        echo 'PATH="{{ nvm_home }}/current/bin:${PATH}"'; \
+        echo 'PATH="${HOME}/go/bin:${PATH}"'; \
+        echo "export PATH"; \
+        echo; \
+        echo "# [Devilbox] Ensure to load nvm"; \
+        echo 'export NVM_DIR="{{ nvm_home }}"'; \
+        echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm'; \
+        echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion'; \
+    } | tee -a /home/${MY_USER}/.bashrc /root/.bashrc \
+    && chown ${MY_USER}:${MY_GROUP} /home/${MY_USER}/.bashrc
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 3/7: Devilbox Agentic work image (HELP TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test all Devilbox cli utils if copying was successful
+###
+FROM agentic-work-help AS agentic-work-help-test
+
+###
+### Devilbox required helper tools from group_vars (work-help.yml)
+###
+{% for tool in help_software_enabled -%}
+    {# Not disabled #}
+    {%- if fn.is_not_disabled(tool, help_software_available) -%}
+        {{- "\n" }}# -------------------- {{ tool }} --------------------
+        {{- "\n" }}RUN set -eux \
+        {#- -#}
+        {#- [CHECK] -#}
+        {%- if 'check' in help_software_available[tool] -%}
+            {{ "\n\t" }}&& {{ help_software_available[tool]['check'] | indent( "\t" ) }}{{ "\t\\" }}
+        {%- endif -%}
+        {#- -#}
+        {#- Finalize -#}
+        {{ "\n\t" }}&& true{{ "\n" }}
+    {%- endif -%}
+{%- endfor %}
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 4/7: Devilbox Agentic work image (TOOLS BUILDER)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### This stage can be easily modified by adding tools into the extra_tools/ directory.
+###
+FROM agentic-work-help AS agentic-work-tools-builder
+
+{% set build_deps = [] -%}
+{%- set run_deps = [] -%}
+{%- set tools_apt = [] -%}
+{%- for tool in extra_tools -%}
+    {%- for dep in fn.get_build_dep(tool, extra_tools_available) | from_json -%}
+        {%- if dep -%}
+            {{- build_deps.append(dep) -}}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- for dep in fn.get_run_dep(tool, extra_tools_available) | from_json -%}
+        {%- if dep -%}
+            {{- run_deps.append(dep) -}}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- if fn.is_not_disabled(tool, extra_tools_available) -%}
+        {%- if fn.tool_apt_get_package(tool, extra_tools_available) -%}
+            {{- tools_apt.append(fn.tool_apt_get_package(tool, extra_tools_available)) -}}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor %}
+
+{%- if build_deps or run_deps or tools_apt -%}
+###
+### Install build_dep, run_dep or tools type: apt
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+    {{- "\n" -}}
+    {%- if build_deps -%}
+        {{- "\t\t# ---------- build_deps ----------\n" -}}
+        {%- for apt in build_deps | unique | sort -%}
+                {{- "\t\t" + apt + " \\" + "\n" -}}
+        {%- endfor -%}
+    {%- endif -%}
+    {%- if run_deps -%}
+        {{- "\t\t# ---------- run_deps ----------\n" -}}
+        {%- for apt in run_deps | unique | sort -%}
+                {{- "\t\t" + apt + " \\" + "\n" -}}
+        {%- endfor -%}
+    {%- endif -%}
+    {%- if tools_apt -%}
+        {{- "\t\t# ---------- type: apt ----------\n" -}}
+        {%- for apt in tools_apt | unique | sort -%}
+                {{- "\t\t" + apt + " \\" + "\n" -}}
+        {%- endfor -%}
+    {%- endif -%}
+    {{- "\t" -}}&& rm -rf /var/lib/apt/lists/*{{- "\n" -}}
+{% endif %}
+
+###
+### Install defined extra_tools
+###
+{{ fn.install_tool_layers(extra_tools, extra_tools_available) }}
+
+# ----- Default-enabled extra tools (symlinked to /usr/local/bin/ at build time): -----
+{% for slug in extra_tools_enabled_by_default %}
+# {{ slug }}  ({{ extra_tools_available[slug].all.binary }})
+{% endfor %}
+# ----- Installed-only extra tools (binary exists, no PATH symlink by default): -----
+{% for slug in extra_tools_installed_only %}
+# {{ slug }}  ({{ extra_tools_available[slug].all.binary }})
+{% endfor %}
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 5/7: Devilbox Agentic work image (TOOLS)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### This stage can be easily modified by adding tools into the extra_tools/ directory.
+###
+FROM agentic-work-help AS agentic-work-tools
+
+{% set run_deps = [] -%}
+{%- set tools_apt = [] -%}
+{%- for tool in extra_tools -%}
+    {%- for dep in fn.get_run_dep(tool, extra_tools_available) | from_json -%}
+        {%- if dep -%}
+            {{- run_deps.append(dep) -}}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- if fn.is_not_disabled(tool, extra_tools_available) -%}
+        {%- if fn.tool_apt_get_package(tool, extra_tools_available) -%}
+            {{- tools_apt.append(fn.tool_apt_get_package(tool, extra_tools_available)) -}}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor %}
+
+{%- if run_deps or tools_apt -%}
+###
+### Install run_dep or tools type: apt
+###
+RUN set -eux \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests \
+    {{- "\n" -}}
+    {%- if run_deps -%}
+        {{- "\t\t# ---------- run_deps ----------\n" -}}
+        {%- for apt in run_deps | unique | sort -%}
+                {{- "\t\t" + apt + " \\" + "\n" -}}
+        {%- endfor -%}
+    {%- endif -%}
+    {%- if tools_apt -%}
+        {{- "\t\t# ---------- type: apt ----------\n" -}}
+        {%- for apt in tools_apt | unique | sort -%}
+                {{- "\t\t" + apt + " \\" + "\n" -}}
+        {%- endfor -%}
+    {%- endif -%}
+    {{- "\t" -}}&& rm -rf /var/lib/apt/lists/*{{- "\n" -}}
+{% endif %}
+
+###
+### Copy extra tools from builder
+###
+COPY --from=agentic-work-tools-builder /opt/agentic-tools /opt/agentic-tools
+
+###
+### Copy Custom (binaries in /usr/local/bin)
+###
+COPY --from=agentic-work-tools-builder /usr/local/bin /usr/local/bin
+
+###
+### Set permission for agentic tools
+###
+RUN set -eux \
+    && chown -Rf ${MY_USER}:${MY_GROUP} /opt/agentic-tools
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 6/7: Devilbox Agentic work image (TOOLS TEST)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Test all Devilbox cli utils if copying was successful
+###
+FROM agentic-work-tools AS agentic-work-tools-test
+
+{% for tool in extra_tools -%}
+    {%- if fn.is_not_disabled(tool, extra_tools_available) -%}
+        {{- "\n" }}# -------------------- ({{ fn.get_type(tool, extra_tools_available) }}) {{ tool }} --------------------
+        {{- "\n" }}RUN set -eux \
+        {%- if 'check' in extra_tools_available[tool] -%}
+            {{ "\n\t" }}&& {{ extra_tools_available[tool]['check'] | indent( "\t" ) }}{{ "\t\\" }}
+        {%- endif -%}
+        {{ "\n\t" }}&& true{{ "\n" }}
+    {%- endif -%}
+{%- endfor %}
+
+
+
+########################################################################################################################
+########################################################################################################################
+###
+### Stage 7/7: Devilbox Agentic work image (FINAL)
+###
+########################################################################################################################
+########################################################################################################################
+
+###
+### Prepare final work image (STAGE: work)
+###
+FROM agentic-work-tools AS work
 
 ###
 ### Labels
@@ -33,164 +411,9 @@ LABEL "org.opencontainers.image.ref.name"="work"
 LABEL "org.opencontainers.image.title"="Devilbox Agentic (work)"
 LABEL "org.opencontainers.image.description"="Devilbox container shipping agentic coding CLIs (work stage)"
 
-ARG GO_VERSION={{ go_version }}
-ARG TARGETARCH
-
-ENV PATH=/opt/nvm/current/bin:/home/devilbox/go/bin:/usr/local/go/bin:/home/devilbox/.local/bin:${PATH}
-
-USER root
-
 ###
-### Install developer comfort tools + gh CLI + pipx + python (was in base)
+### Default-enabled extra tools symlinks
 ###
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-        bash-completion \
-        bzip2 \
-        direnv \
-        dnsutils \
-        fd-find \
-        gh \
-        htop \
-        iputils-ping \
-        jq \
-        nano \
-        netcat-openbsd \
-        openssh-client \
-        pipx \
-        procps \
-        psmisc \
-        python3 \
-        python3-pip \
-        python3-venv \
-        ripgrep \
-        socat \
-        tmux \
-        tree \
-        unzip \
-        vim \
-        xz-utils \
-        yq \
-        zip \
-    && curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-###
-### Install build toolchain (gcc, *-dev) and system dev packages
-###
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-        build-essential \
-        cmake \
-        g++ \
-        gcc \
-        libffi-dev \
-        libssl-dev \
-        make \
-        pkg-config \
-        python3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-###
-### Install Go
-###
-RUN set -eux \
-    && case "${TARGETARCH:-amd64}" in \
-        amd64) go_arch="amd64" ;; \
-        arm64) go_arch="arm64" ;; \
-        *) echo "Unsupported TARGETARCH: ${TARGETARCH}"; exit 1 ;; \
-    esac \
-    && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" -o /tmp/go.tgz \
-    && rm -rf /usr/local/go \
-    && tar -C /usr/local -xzf /tmp/go.tgz \
-    && rm -f /tmp/go.tgz
-
-###
-### Install nvm + Node LTS
-###
-ENV NVM_DIR=/opt/nvm
-ENV NVM_VERSION={{ nvm_version | default('v0.40.4') }}
-ENV NODE_VERSION={{ node_version | default('lts/*') }}
-
-RUN set -eux \
-    && install -d -m 0755 /opt/nvm \
-    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" \
-       | NVM_DIR=/opt/nvm PROFILE=/dev/null bash \
-    && chown -R devilbox:devilbox /opt/nvm \
-    && su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm install "'"${NODE_VERSION}"'" && nvm alias default "'"${NODE_VERSION}"'"' devilbox \
-    && NODE_DIR="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && ln -sfn "$(dirname ${NODE_DIR})" /opt/nvm/current \
-    && for bin in node npm npx corepack; do \
-         [ -f "${NODE_DIR}/${bin}" ] && ln -sf "${NODE_DIR}/${bin}" "/usr/local/bin/${bin}"; \
-       done \
-    && /usr/local/bin/corepack enable \
-    && node --version && npm --version
-
-RUN set -eux \
-    && NODE_BIN="$(su -s /bin/bash -c '. /opt/nvm/nvm.sh && nvm which default | xargs dirname' devilbox)" \
-    && echo "export PATH=\"${NODE_BIN}:\$PATH\"" > /etc/profile.d/nvm-path.sh \
-    && echo "PATH=\"${NODE_BIN}:${PATH}\"" >> /etc/environment
-
-###
-### Install bun
-###
-ENV BUN_VERSION={{ bun_version | default('latest') }}
-RUN set -eux \
-    && curl -fsSL https://bun.sh/install | bash \
-    && install -m 0755 /root/.bun/bin/bun /usr/local/bin/bun \
-    && (install -m 0755 /root/.bun/bin/bunx /usr/local/bin/bunx 2>/dev/null || ln -sf /usr/local/bin/bun /usr/local/bin/bunx) \
-    && rm -rf /root/.bun \
-    && bun --version
-
-###
-### Install extra tools (openspec, speckit) from extra_tools/
-###
-{% set build_deps = [] -%}
-{%- for tool in extra_tools -%}
-    {%- for dep in fn.get_build_dep(tool, extra_tools_available) | from_json -%}
-        {%- if dep -%}{{- build_deps.append(dep) -}}{%- endif -%}
-    {%- endfor -%}
-{%- endfor -%}
-{%- if build_deps %}
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-{% for build_dep in build_deps | unique | sort %}
-        {{ build_dep }} \
-{% endfor %}
-    && rm -rf /var/lib/apt/lists/*
-{%- endif %}
-
-{% set apt_tools = [] -%}
-{%- for tool in extra_tools -%}
-    {%- if fn.get_type(tool, extra_tools_available) == 'apt' -%}
-        {{- apt_tools.append(fn.tool_apt_get_package(tool, extra_tools_available)) -}}
-    {%- endif -%}
-{%- endfor -%}
-{%- if apt_tools %}
-RUN set -eux \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-{% for apt_tool in apt_tools | unique | sort %}
-        {{ apt_tool }} \
-{% endfor %}
-    && rm -rf /var/lib/apt/lists/*
-{%- endif %}
-
-{{ fn.install_tool_layers(extra_tools, extra_tools_available) }}
-
-# ----- Default-enabled extra tools (symlinked to /usr/local/bin/ at build time): -----
-{% for slug in extra_tools_enabled_by_default %}
-# {{ slug }}  ({{ extra_tools_available[slug].all.binary }})
-{% endfor %}
-# ----- Installed-only extra tools (binary exists, no PATH symlink by default): -----
-{% for slug in extra_tools_installed_only %}
-# {{ slug }}  ({{ extra_tools_available[slug].all.binary }})
-{% endfor %}
-
 RUN set -eux \
 {% for slug in extra_tools_enabled_by_default %}
     && ln -sfn /opt/agentic-tools/{{ slug }}/bin/{{ extra_tools_available[slug].all.binary }} /usr/local/bin/{{ extra_tools_available[slug].all.binary }} \
@@ -206,7 +429,13 @@ RUN set -eux \
     && echo ". /etc/bash-devilbox" >> /home/devilbox/.bashrc \
     && chown devilbox:devilbox /home/devilbox/.bashrc
 
+###
+### Where to start inside the container
+###
 WORKDIR /shared/httpd
 
+###
+### Entrypoint
+###
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
 CMD ["bash"]

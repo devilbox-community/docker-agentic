@@ -7,8 +7,14 @@ agentic_tools:
   - claude-code
   - codex
   - copilot
+  - droid
+  - gemini
+  - kilo-code
+  - kimi
+  - kiro
   - opencode
   - pi-coding-agent
+  - qwen-code
   - reasonix
 
 # The following specifies which agentic_tools are linked by default.
@@ -16,8 +22,14 @@ agentic_tools_enabled_by_default:
   - claude-code
   - codex
   - copilot
+  - droid
+  - gemini
+  - kilo-code
+  - kimi
+  - kiro
   - opencode
   - pi-coding-agent
+  - qwen-code
   - reasonix
 
 agentic_tools_installed_only: []
@@ -80,6 +92,83 @@ agentic_tools_available:
       run_dep: []
       pre: ''
       post: ''
+  droid:
+    disabled: []
+    check: droid --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/factory/bin;
+        curl -fsSL https://app.factory.ai/cli | sh;
+        install -D -m 0755 "${HOME}/.local/bin/droid" /opt/agentic-tools/factory/bin/droid;
+        test -x /opt/agentic-tools/factory/bin/droid
+      package: "@factory/cli"
+      binary: droid
+      version: ''
+      build_dep: []
+      run_dep: [xdg-utils]
+      pre: ''
+      post: ''
+  gemini:
+    disabled: []
+    check: gemini --version 2>&1 | grep -qiE '(gemini|not yet|[0-9]+\.[0-9]+)'
+    all:
+      type: npm
+      package: "@google/gemini-cli"
+      binary: gemini
+      version: ''
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  kilo-code:
+    disabled: []
+    check: kilo --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: npm
+      package: "@kilocode/cli"
+      binary: kilo
+      version: ''
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  kimi:
+    disabled: []
+    check: kimi --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/kimi;
+        KIMI_INSTALL_DIR=/opt/agentic-tools/kimi KIMI_VERSION=1.46.0 KIMI_NO_MODIFY_PATH=1 curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash;
+        install -D -m 0755 /root/.kimi-code/bin/kimi /opt/agentic-tools/kimi/bin/kimi;
+        test -x /opt/agentic-tools/kimi/bin/kimi
+      package: "@moonshot-ai/kimi-code"
+      binary: kimi
+      version: 1.46.0
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  kiro:
+    disabled: []
+    check: kiro-cli --version 2>&1 | grep -qiE '(kiro|[0-9]+\.[0-9]+)'
+    all:
+      type: custom
+      command: |
+        mkdir -p /opt/agentic-tools/kiro/bin;
+        wget https://desktop-release.q.us-east-1.amazonaws.com/latest/kiro-cli.deb -O /tmp/kiro-cli.deb;
+        dpkg -i /tmp/kiro-cli.deb;
+        apt-get install -f -y;
+        install -D -m 0755 "$(which kiro-cli)" /opt/agentic-tools/kiro/bin/kiro-cli;
+        test -x /opt/agentic-tools/kiro/bin/kiro-cli
+      package: kiro-cli
+      binary: kiro-cli
+      version: ''
+      build_dep: [libayatana-appindicator3-1, libwebkit2gtk-4.1-0, libgtk-3-0]
+      run_dep: [libayatana-appindicator3-1, libwebkit2gtk-4.1-0, libgtk-3-0]
+      pre: ''
+      post: ''
   opencode:
     disabled: []
     check: opencode --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
@@ -114,6 +203,18 @@ agentic_tools_available:
       package: "@earendil-works/pi-coding-agent"
       binary: pi
       version: ''
+      build_dep: []
+      run_dep: []
+      pre: ''
+      post: ''
+  qwen-code:
+    disabled: []
+    check: qwen --version 2>&1 | grep -iE '[0-9]+\.[0-9]+' || (qwen --version; false)
+    all:
+      type: npm
+      package: "@qwen-code/qwen-code"
+      binary: qwen
+      version: latest
       build_dep: []
       run_dep: []
       pre: ''

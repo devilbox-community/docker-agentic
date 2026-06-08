@@ -1,0 +1,13 @@
+---
+
+check: kilo --version 2>&1 | grep -qE '[0-9]+\.[0-9]+'
+
+all:
+  type: npm
+  package: "@kilocode/cli"
+  binary: kilo
+  version:
+  build_dep: []
+  run_dep: []
+  pre:
+  post:
