@@ -33,8 +33,8 @@ IMAGE      = $(ORG_USER)/agentic
 FILE       = Dockerfile
 DIR        = Dockerfiles/$(STAGE)
 
-# Agent tool names (per-agent harness images)
-AGENTIC_TOOL_NAMES := claude-code codex copilot opencode pi-coding-agent reasonix
+# Agent tool names (auto-discovered from generated Dockerfiles in Dockerfiles/agentic/)
+AGENTIC_TOOL_NAMES := $(patsubst Dockerfiles/agentic/Dockerfile-%,%,$(wildcard Dockerfiles/agentic/Dockerfile-*))
 IS_AGENTIC := $(filter $(STAGE),$(AGENTIC_TOOL_NAMES))
 
 # Docker tags: plain stage name for all images
@@ -76,7 +76,7 @@ help:
 	@echo "rebuild STAGE=... [ARCH=...] [TAG=...]                       Build Docker image without cache"
 	@echo "push STAGE=... [ARCH=...] [TAG=...]                          Push Docker image to Docker hub"
 	@echo
-	@echo "  STAGE values: base, work, claude-code, codex, copilot, opencode, pi-coding-agent, reasonix"
+	@echo "  STAGE values: base, work, $(AGENTIC_TOOL_NAMES)"
 	@echo
 	@echo "manifest-create [ARCHES=...] [TAG=...]                        Create multi-arch manifest"
 	@echo "manifest-push [TAG=...]                                       Push multi-arch manifest"
